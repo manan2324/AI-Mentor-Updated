@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import Header from "../components/Header";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ChevronLeft,
   Pause,
@@ -18,9 +18,11 @@ import {
 
 export default function Learning() {
   const navigate = useNavigate();
+  const { id } = useParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [learningData, setLearningData] = useState(null);
   const [expandedModule, setExpandedModule] = useState("module-1");
+  const [completedLessons, setCompletedLessons] = useState(new Set());
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -38,12 +40,53 @@ export default function Learning() {
       try {
         const response = await fetch('/data/learning.json');
         const data = await response.json();
-        setLearningData(data);
+        const courseData = data[id];
+        if (courseData) {
+          setLearningData(courseData);
+          // Initialize completed lessons from data and localStorage
+          const completed = new Set();
+          courseData.modules?.forEach(module => {
+            module.lessons?.forEach(lesson => {
+              if (lesson.completed) {
+                completed.add(lesson.id);
+              }
+            });
+          });
+
+          // Load saved progress from localStorage
+          const savedProgress = localStorage.getItem(`course-progress-${id}`);
+          if (savedProgress) {
+            const progressData = JSON.parse(savedProgress);
+            progressData.completedLessons.forEach(lessonId => {
+              completed.add(lessonId);
+            });
+          }
+
+          setCompletedLessons(completed);
+          console.log('Loaded course data:', courseData);
+        } else {
+          console.error('Course not found for id:', id);
+          console.log('Available course IDs:', Object.keys(data));
+        }
       } catch (error) {
         console.error('Error fetching learning data:', error);
       }
     };
     fetchLearningData();
+  }, [id]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   const { modules, currentLesson } = learningData || {};
@@ -139,20 +182,6 @@ export default function Learning() {
     }
   };
 
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
-
-    return () => {
-      document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-[#F6F8FA]">
       <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
@@ -177,75 +206,109 @@ export default function Learning() {
 
           {/* Module List */}
           <div className="p-4 space-y-2">
-            {modules.map((module) => (
-              <div key={module.id} className="space-y-2">
-                <button
-                  onClick={() => toggleModule(module.id)}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg border border-[#909090] bg-white hover:bg-gray-50 transition-colors"
-                >
-                  <span className="text-[#3B4453] font-['Space_Grotesk']">{module.title}</span>
-                  <ChevronDown className={`w-4 h-4 transition-transform ${expandedModule === module.id ? 'rotate-180' : ''}`} />
-                </button>
+            {modules && modules.length > 0 ? (
+              modules.map((module) => (
+                <div key={module.id} className="space-y-2">
+                  <button
+                    onClick={() => toggleModule(module.id)}
+                    className="w-full flex items-center justify-between px-3 py-3 rounded-lg border border-[#909090] bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    <span className="text-[#3B4453] font-['Space_Grotesk']">{module.title}</span>
+                    <ChevronDown className={`w-4 h-4 transition-transform ${expandedModule === module.id ? 'rotate-180' : ''}`} />
+                  </button>
 
-                {expandedModule === module.id && module.lessons.length > 0 && (
-                  <div className="space-y-2 pl-1">
-                    {module.lessons.map((lesson) => {
-                      const isActive = currentLesson === lesson.id && lesson.playing;
-                      const isPreviouslyCompleted = lesson.completed && !lesson.playing;
-                      
-                      return (
-                        <div
-                          key={lesson.id}
-                          className={`rounded-lg p-3 transition-all ${
-                            isActive 
-                              ? 'bg-gradient-to-r from-[#A0FFF3] to-[#009EB9] shadow-[0_0_20px_rgba(110,253,186,0.3)]' 
-                              : isPreviouslyCompleted
-                              ? 'bg-[#E4FFFB]'
-                              : 'bg-[#E4FFFB]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {lesson.type === 'document' ? (
-                                <FileText className="w-3 h-4 flex-shrink-0 text-[#3B4453]" />
-                              ) : (
-                                <Play className="w-3 h-4 fill-[#3B4453] text-[#3B4453]" />
-                              )}
-                              <div>
-                                <div className="text-black font-normal">{lesson.title}</div>
-                                <div className="text-xs text-[#3B4453] font-['Space_Grotesk']">{lesson.duration}</div>
+                  {expandedModule === module.id && module.lessons && module.lessons.length > 0 && (
+                    <div className="space-y-2 pl-1">
+                      {module.lessons.map((lesson) => {
+                        const isActive = currentLesson && currentLesson.id === lesson.id;
+                        const isCompleted = completedLessons.has(lesson.id);
+
+                        return (
+                          <div
+                            key={lesson.id}
+                            className={`rounded-lg p-3 transition-all cursor-pointer ${
+                              isActive
+                                ? 'bg-gradient-to-r from-[#A0FFF3] to-[#009EB9] shadow-[0_0_20px_rgba(110,253,186,0.3)]'
+                                : isCompleted
+                                ? 'bg-[#E4FFFB]'
+                                : 'bg-[#E4FFFB] hover:bg-[#D1F5F0]'
+                            }`}
+                            onClick={() => {
+                              // Update current lesson when clicked
+                              setLearningData(prev => ({
+                                ...prev,
+                                currentLesson: {
+                                  ...lesson,
+                                  module: module.title
+                                }
+                              }));
+                              // Mark lesson as completed when clicked (simulate watching)
+                              const newCompletedLessons = new Set([...completedLessons, lesson.id]);
+                              setCompletedLessons(newCompletedLessons);
+
+                              // Persist progress to localStorage
+                              const progressData = {
+                                courseId: id,
+                                completedLessons: Array.from(newCompletedLessons)
+                              };
+                              localStorage.setItem(`course-progress-${id}`, JSON.stringify(progressData));
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {lesson.type === 'document' ? (
+                                  <FileText className="w-3 h-4 flex-shrink-0 text-[#3B4453]" />
+                                ) : (
+                                  <Play className="w-3 h-4 fill-[#3B4453] text-[#3B4453]" />
+                                )}
+                                <div>
+                                  <div className="text-black font-normal">{lesson.title}</div>
+                                  <div className="text-xs text-[#3B4453] font-['Space_Grotesk']">{lesson.duration}</div>
+                                </div>
                               </div>
+
+                              {isCompleted && (
+                                <Check className="w-4 h-4 flex-shrink-0" />
+                              )}
+
+                              {!isCompleted && !isActive && (
+                                <Circle className="w-4 h-4 flex-shrink-0" />
+                              )}
+
+                              {isActive && (
+                                <Check className="w-4 h-4 flex-shrink-0" />
+                              )}
                             </div>
-                            
-                            {isPreviouslyCompleted && (
-                              <Check className="w-4 h-4 flex-shrink-0" />
-                            )}
-
-                            {!isPreviouslyCompleted && !isActive && (
-                              <Circle className="w-4 h-4 flex-shrink-0" />
-                            )}
-
-                            {isActive && (
-                              <Check className="w-4 h-4 flex-shrink-0" />
-                            )}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p>No modules available for this course.</p>
+                <p className="text-sm mt-2">Dummy data will be loaded soon.</p>
               </div>
-            ))}
+            )}
           </div>
 
           {/* Progress Section */}
           <div className="p-4 border-t border-[#A5A5A5] mt-auto">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-bold">Progress</span>
-              <span className="text-sm font-bold">{learningData.course.progress}%</span>
+              <span className="text-sm font-bold">
+                {learningData.modules ? Math.round((completedLessons.size / learningData.modules.reduce((total, module) => total + (module.lessons?.length || 0), 0)) * 100) : 0}%
+              </span>
             </div>
             <div className="w-full h-2 bg-[#374151] rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] rounded-full" style={{ width: `${learningData.course.progress}%` }}></div>
+              <div
+                className="h-full bg-gradient-to-r from-[#60A5FA] to-[#3B82F6] rounded-full transition-all duration-300"
+                style={{
+                  width: `${learningData.modules ? Math.round((completedLessons.size / learningData.modules.reduce((total, module) => total + (module.lessons?.length || 0), 0)) * 100) : 0}%`
+                }}
+              ></div>
             </div>
           </div>
         </aside>
@@ -262,18 +325,28 @@ export default function Learning() {
 
           {/* Video Player */}
           <div ref={playerContainerRef} className="relative rounded-xl overflow-hidden shadow-[0_0_20px_rgba(59,130,246,0.3)] mb-8 max-w-[993px] bg-black">
-            <video
-              ref={videoRef}
-              className="w-full h-full"
-              src={currentLesson.videoUrl}
-              onTimeUpdate={handleProgress}
-              onLoadedMetadata={handleProgress}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-              onClick={togglePlay}
-            />
+            {currentLesson && currentLesson.videoUrl ? (
+              <video
+                ref={videoRef}
+                className="w-full h-full"
+                src={currentLesson.videoUrl}
+                onTimeUpdate={handleProgress}
+                onLoadedMetadata={handleProgress}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                onClick={togglePlay}
+              />
+            ) : (
+              <div className="w-full h-[400px] flex items-center justify-center text-white">
+                <div className="text-center">
+                  <Play className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-xl">Video not available</p>
+                  <p className="text-sm opacity-75 mt-2">This is dummy content for demonstration</p>
+                </div>
+              </div>
+            )}
             <div className="absolute top-4 left-5 text-white/70 text-xl">
-              {currentLesson.module} {currentLesson.title}
+              {currentLesson ? `${currentLesson.module || 'Module'} - ${currentLesson.title || 'Lesson'}` : 'Loading lesson...'}
             </div>
 
             {/* Video Controls */}
@@ -320,37 +393,52 @@ export default function Learning() {
 
           {/* Lesson Content */}
           <div className="max-w-[896px] space-y-6">
-            {/* Introduction Card */}
-            <div className="rounded-2xl border-l-4 border-black bg-white shadow-[0_4px_6px_rgba(0,0,0,0.1),0_10px_15px_rgba(0,0,0,0.1)] p-6">
-              <p className="text-xl text-black text-justify leading-normal">
-                {currentLesson.content.introduction}
-              </p>
-            </div>
-
-            {/* Key Concepts */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-black">Key Concepts</h3>
-
-              {currentLesson.content.keyConcepts.map((concept, index) => (
-                <div key={index} className={`rounded-lg border-l-4 ${concept.borderColor} ${concept.bgColor} shadow-[0_4px_4px_rgba(0,0,0,0.25)] p-5 space-y-2`}>
-                  <h4 className={`font-['Space_Grotesk'] ${concept.textColor}`}>{concept.title}</h4>
-                  <p className={`font-['Space_Grotesk'] ${concept.descriptionColor || concept.textColor}`}>{concept.description}</p>
+            {currentLesson && currentLesson.content ? (
+              <>
+                {/* Introduction Card */}
+                <div className="rounded-2xl border-l-4 border-black bg-white shadow-[0_4px_6px_rgba(0,0,0,0.1),0_10px_15px_rgba(0,0,0,0.1)] p-6">
+                  <p className="text-xl text-black text-justify leading-normal">
+                    {currentLesson.content.introduction}
+                  </p>
                 </div>
-              ))}
-            </div>
 
-            {/* Navigation Buttons */}
-            <div className="flex items-center justify-between pt-8">
-              <button className="px-6 py-3 rounded-lg bg-[#374151] text-white font-['Space_Grotesk'] hover:bg-[#4B5563] transition-colors flex items-center gap-2">
-                <ChevronLeft className="w-4 h-4" />
-                Previous
-              </button>
-              
-              <button className="px-6 py-3 rounded-lg bg-[#2563EB] text-white font-['Space_Grotesk'] shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:bg-[#1D4ED8] transition-colors flex items-center gap-2">
-                Next
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+                {/* Key Concepts */}
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-black">Key Concepts</h3>
+
+                  {currentLesson.content.keyConcepts && currentLesson.content.keyConcepts.length > 0 ? (
+                    currentLesson.content.keyConcepts.map((concept, index) => (
+                      <div key={index} className={`rounded-lg border-l-4 ${concept.borderColor} ${concept.bgColor} shadow-[0_4px_4px_rgba(0,0,0,0.25)] p-5 space-y-2`}>
+                        <h4 className={`font-['Space_Grotesk'] ${concept.textColor}`}>{concept.title}</h4>
+                        <p className={`font-['Space_Grotesk'] ${concept.descriptionColor || concept.textColor}`}>{concept.description}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <p>No key concepts available for this lesson.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex items-center justify-between pt-8">
+                  <button className="px-6 py-3 rounded-lg bg-[#374151] text-white font-['Space_Grotesk'] hover:bg-[#4B5563] transition-colors flex items-center gap-2">
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+
+                  <button className="px-6 py-3 rounded-lg bg-[#2563EB] text-white font-['Space_Grotesk'] shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:bg-[#1D4ED8] transition-colors flex items-center gap-2">
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-16 text-gray-500">
+                <p className="text-xl mb-4">No lesson content available</p>
+                <p>This course is currently using dummy data. Content will be added soon.</p>
+              </div>
+            )}
           </div>
         </main>
       </div>

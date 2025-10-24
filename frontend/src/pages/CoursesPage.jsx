@@ -14,8 +14,57 @@ const CoursesPage = () => {
     const fetchCoursesData = async () => {
       try {
         const response = await fetch('/data/courses.json')
-        const data = await response.json()
-        setCoursesData(data)
+        const coursesData = await response.json()
+
+        // Fetch learning data to get dynamic progress
+        const learningResponse = await fetch('/data/learning.json')
+        const learningData = await learningResponse.json()
+
+        // Update course cards with dynamic data from learning.json and localStorage
+        const updatedCourseCards = coursesData.courseCards.map(course => {
+          const courseLearningData = learningData[course.id.toString()]
+          if (courseLearningData) {
+            // Calculate total lessons
+            const totalLessons = courseLearningData.modules.reduce((total, module) => total + (module.lessons?.length || 0), 0)
+
+            // Get completed lessons from localStorage
+            const savedProgress = localStorage.getItem(`course-progress-${course.id}`)
+            let completedLessons = 0
+            if (savedProgress) {
+              const progressData = JSON.parse(savedProgress)
+              completedLessons = progressData.completedLessons.length
+            } else {
+              // Fallback to static data if no saved progress
+              completedLessons = courseLearningData.modules.reduce((total, module) =>
+                total + (module.lessons?.filter(lesson => lesson.completed).length || 0), 0
+              )
+            }
+
+            // Calculate progress percentage
+            const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0
+
+            // Determine status based on progress
+            let status = 'Not Started'
+            if (progress === 100) {
+              status = 'Completed'
+            } else if (progress > 0) {
+              status = 'In Progress'
+            }
+
+            return {
+              ...course,
+              progress,
+              lessons: `${completedLessons} of ${totalLessons} lessons`,
+              status
+            }
+          }
+          return course
+        })
+
+        setCoursesData({
+          ...coursesData,
+          courseCards: updatedCourseCards
+        })
       } catch (error) {
         console.error('Error fetching courses data:', error)
       }
@@ -102,8 +151,8 @@ const CoursesPage = () => {
                 {courseCards.map((course) => (
                   <div key={course.id} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
                     {/* Course Header with Background */}
-                    <Link to={`/course-preview/${course.id}`}>
-                      <div className={`relative h-48 bg-gradient-to-br ${course.backgroundGradient} p-4 flex flex-col justify-between`}>
+                    <Link to={`/learning/${course.id}`}>
+                      <div className={`relative h-48 bg-gradient-to-br ${course.backgroundGradient} p-4 flex flex-col justify-between cursor-pointer`}>
                         {course.backgroundImage && (
                           <img
                             src={course.backgroundImage}
