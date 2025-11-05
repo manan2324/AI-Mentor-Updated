@@ -6,6 +6,8 @@ const AdminPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [activeTab, setActiveTab] = useState('courses');
   const [newCourse, setNewCourse] = useState({
     id: '',
     title: '',
@@ -18,6 +20,11 @@ const AdminPage = () => {
     image: '',
     categoryColor: 'bg-blue-100 text-blue-600',
   });
+  const [videoUrl, setVideoUrl] = useState('');
+  const [selectedLesson, setSelectedLesson] = useState('');
+  const [subtopics, setSubtopics] = useState([{ title: '', goal: '', topics: [''], tools: [''], activities: [''], assignment: '', activity: '' }]);
+  const [newLessons, setNewLessons] = useState([{ id: '', title: '', duration: '', completed: false, playing: false, type: 'video' }]);
+  const [selectedModule, setSelectedModule] = useState('');
 
   const fetchCourses = async () => {
     try {
@@ -65,6 +72,21 @@ const AdminPage = () => {
     }
   };
 
+  const handleManageCourse = async (courseId) => {
+    try {
+      const response = await fetch(`/api/courses/${courseId}`);
+      if (response.ok) {
+        const fullCourse = await response.json();
+        setSelectedCourse(fullCourse);
+      } else {
+        alert('Failed to fetch course details');
+      }
+    } catch (error) {
+      console.error('Error fetching course:', error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
   const handleDeleteCourse = async (courseId) => {
     if (!window.confirm('Are you sure you want to delete this course?')) return;
     const token = localStorage.getItem('token');
@@ -83,6 +105,105 @@ const AdminPage = () => {
       alert('Course deleted successfully!');
     } catch (error) {
       console.error('Error deleting course:', error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
+  const handleUpdateVideo = async () => {
+    if (!selectedLesson || !videoUrl) {
+      alert('Please select a lesson and enter a video URL');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`/api/courses/${selectedCourse.id}/lessons/${selectedLesson}/video`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ youtubeUrl: videoUrl }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update video URL');
+      }
+      alert('Video URL updated successfully!');
+      setVideoUrl('');
+      setSelectedLesson('');
+    } catch (error) {
+      console.error('Error updating video:', error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
+  const handleSubtopicChange = (index, field, value) => {
+    const updatedSubtopics = [...subtopics];
+    updatedSubtopics[index][field] = value;
+    setSubtopics(updatedSubtopics);
+  };
+
+  const addSubtopicField = () => {
+    setSubtopics([...subtopics, { title: '', goal: '', topics: [''], tools: [''], activities: [''], assignment: '', activity: '' }]);
+  };
+
+  const handleAddSubtopics = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`/api/courses/${selectedCourse.id}/subtopics`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ subtopics }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add subtopics');
+      }
+      alert('Subtopics added successfully!');
+      setSubtopics([{ title: '', goal: '', topics: [''], tools: [''], activities: [''], assignment: '', activity: '' }]);
+    } catch (error) {
+      console.error('Error adding subtopics:', error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
+  const handleLessonChange = (index, field, value) => {
+    const updatedLessons = [...newLessons];
+    updatedLessons[index][field] = value;
+    setNewLessons(updatedLessons);
+  };
+
+  const addLessonField = () => {
+    setNewLessons([...newLessons, { id: '', title: '', duration: '', completed: false, playing: false, type: 'video' }]);
+  };
+
+  const handleAddLessons = async () => {
+    if (!selectedModule) {
+      alert('Please select a module');
+      return;
+    }
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`/api/courses/${selectedCourse.id}/modules/${selectedModule}/lessons`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ lessons: newLessons }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add lessons');
+      }
+      alert('Lessons added successfully!');
+      setNewLessons([{ id: '', title: '', duration: '', completed: false, playing: false, type: 'video' }]);
+      setSelectedModule('');
+    } catch (error) {
+      console.error('Error adding lessons:', error);
       alert(`Error: ${error.message}`);
     }
   };
@@ -129,13 +250,167 @@ const AdminPage = () => {
                       <h3 className="font-bold">{course.title} (ID: {course.id})</h3>
                       <p className="text-sm text-gray-600">{course.category}</p>
                     </div>
-                    <button onClick={() => handleDeleteCourse(course.id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                      Delete
-                    </button>
+                    <div className="flex gap-2">
+                      <button onClick={() => handleManageCourse(course.id)} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Manage
+                      </button>
+                      <button onClick={() => handleDeleteCourse(course.id)} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Course Management Modal */}
+            {selectedCourse && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white p-6 rounded-lg shadow-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-2xl font-bold">Manage Course: {selectedCourse.title}</h2>
+                    <button onClick={() => setSelectedCourse(null)} className="text-gray-500 hover:text-gray-700">×</button>
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="flex border-b mb-4">
+                    <button onClick={() => setActiveTab('videos')} className={`px-4 py-2 ${activeTab === 'videos' ? 'border-b-2 border-blue-500' : ''}`}>Video URLs</button>
+                    <button onClick={() => setActiveTab('subtopics')} className={`px-4 py-2 ${activeTab === 'subtopics' ? 'border-b-2 border-blue-500' : ''}`}>Subtopics</button>
+                    <button onClick={() => setActiveTab('lessons')} className={`px-4 py-2 ${activeTab === 'lessons' ? 'border-b-2 border-blue-500' : ''}`}>Lessons</button>
+                  </div>
+
+                  {/* Video URLs Tab */}
+                  {activeTab === 'videos' && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Update Lesson Video URLs</h3>
+                      <div className="space-y-4">
+                        <select value={selectedLesson} onChange={(e) => setSelectedLesson(e.target.value)} className="w-full p-2 border rounded">
+                          <option value="">Select a lesson</option>
+                          {selectedCourse.modules?.map(module =>
+                            module.lessons?.map(lesson => (
+                              <option key={lesson.id} value={lesson.id}>{module.title} - {lesson.title}</option>
+                            ))
+                          )}
+                        </select>
+                        <input
+                          type="text"
+                          value={videoUrl}
+                          onChange={(e) => setVideoUrl(e.target.value)}
+                          placeholder="Enter YouTube URL"
+                          className="w-full p-2 border rounded"
+                        />
+                        <button onClick={handleUpdateVideo} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                          Update Video URL
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Subtopics Tab */}
+                  {activeTab === 'subtopics' && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Add Subtopics</h3>
+                      <div className="space-y-4">
+                        {subtopics.map((subtopic, index) => (
+                          <div key={index} className="border p-4 rounded">
+                            <input
+                              type="text"
+                              placeholder="Subtopic Title"
+                              value={subtopic.title}
+                              onChange={(e) => handleSubtopicChange(index, 'title', e.target.value)}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Goal"
+                              value={subtopic.goal}
+                              onChange={(e) => handleSubtopicChange(index, 'goal', e.target.value)}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <textarea
+                              placeholder="Topics (comma separated)"
+                              value={subtopic.topics.join(', ')}
+                              onChange={(e) => handleSubtopicChange(index, 'topics', e.target.value.split(',').map(s => s.trim()))}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <textarea
+                              placeholder="Tools (comma separated)"
+                              value={subtopic.tools.join(', ')}
+                              onChange={(e) => handleSubtopicChange(index, 'tools', e.target.value.split(',').map(s => s.trim()))}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <textarea
+                              placeholder="Activities (comma separated)"
+                              value={subtopic.activities.join(', ')}
+                              onChange={(e) => handleSubtopicChange(index, 'activities', e.target.value.split(',').map(s => s.trim()))}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Assignment"
+                              value={subtopic.assignment}
+                              onChange={(e) => handleSubtopicChange(index, 'assignment', e.target.value)}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Activity"
+                              value={subtopic.activity}
+                              onChange={(e) => handleSubtopicChange(index, 'activity', e.target.value)}
+                              className="w-full p-2 border rounded"
+                            />
+                          </div>
+                        ))}
+                        <button onClick={addSubtopicField} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Another Subtopic</button>
+                        <button onClick={handleAddSubtopics} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-2">Save Subtopics</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Lessons Tab */}
+                  {activeTab === 'lessons' && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Add Lessons to Module</h3>
+                      <div className="space-y-4">
+                        <select value={selectedModule} onChange={(e) => setSelectedModule(e.target.value)} className="w-full p-2 border rounded">
+                          <option value="">Select a module</option>
+                          {selectedCourse.modules?.map(module => (
+                            <option key={module.id} value={module.id}>{module.title}</option>
+                          ))}
+                        </select>
+                        {newLessons.map((lesson, index) => (
+                          <div key={index} className="border p-4 rounded">
+                            <input
+                              type="text"
+                              placeholder="Lesson ID"
+                              value={lesson.id}
+                              onChange={(e) => handleLessonChange(index, 'id', e.target.value)}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Lesson Title"
+                              value={lesson.title}
+                              onChange={(e) => handleLessonChange(index, 'title', e.target.value)}
+                              className="w-full p-2 border rounded mb-2"
+                            />
+                            <input
+                              type="text"
+                              placeholder="Duration"
+                              value={lesson.duration}
+                              onChange={(e) => handleLessonChange(index, 'duration', e.target.value)}
+                              className="w-full p-2 border rounded"
+                            />
+                          </div>
+                        ))}
+                        <button onClick={addLessonField} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Add Another Lesson</button>
+                        <button onClick={handleAddLessons} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ml-2">Save Lessons</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

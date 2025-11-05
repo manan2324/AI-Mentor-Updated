@@ -24,6 +24,12 @@
     "path": "/analytics"
   },
   {
+    "id": "admin",
+    "icon": "/AI_Tutor_New_UI/Icons/settings.svg",
+    "label": "Admin Panel",
+    "path": "/admin"
+  },
+  {
     "id": "settings",
     "icon": "/AI_Tutor_New_UI/Icons/settings.svg",
     "label": "Settings",

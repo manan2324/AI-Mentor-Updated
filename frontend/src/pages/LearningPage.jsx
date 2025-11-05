@@ -17,6 +17,12 @@ import {
   FileText,
 } from "lucide-react";
 
+const getYouTubeVideoId = (url) => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function Learning() {
   const navigate = useNavigate();
   const { id: courseId } = useParams();
@@ -293,59 +299,70 @@ export default function Learning() {
             className="relative bg-black rounded-lg overflow-hidden"
             style={{ aspectRatio: '16/9' }}
           >
-            <video
-              ref={videoRef}
-              src={currentLesson?.videoUrl}
-              className="w-full h-full object-cover"
-              onTimeUpdate={handleProgress}
-              onLoadedMetadata={handleProgress}
-              onEnded={() => {
-                setIsPlaying(false);
-                // Mark lesson as completed and update analytics
-                const token = localStorage.getItem('token');
-                fetch('http://localhost:5000/api/users/course-progress', {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    courseId: parseInt(courseId),
-                    completedLessons: [currentLesson.id],
-                  }),
-                }).then(response => {
-                  if (response.ok) {
-                    // Update user context with new progress
-                    const updatedUser = {
-                      ...user,
-                      purchasedCourses: user.purchasedCourses.map(course =>
-                        course.courseId === parseInt(courseId)
-                          ? {
-                              ...course,
-                              progress: {
-                                ...course.progress,
-                                completedLessons: [
-                                  ...(course.progress.completedLessons || []),
-                                  { lessonId: currentLesson.id, completedAt: new Date() }
-                                ]
+            {currentLesson?.youtubeUrl ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentLesson.youtubeUrl)}`}
+                className="w-full h-full"
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={currentLesson.title}
+              ></iframe>
+            ) : (
+              <video
+                ref={videoRef}
+                src={currentLesson?.videoUrl}
+                className="w-full h-full object-cover"
+                onTimeUpdate={handleProgress}
+                onLoadedMetadata={handleProgress}
+                onEnded={() => {
+                  setIsPlaying(false);
+                  // Mark lesson as completed and update analytics
+                  const token = localStorage.getItem('token');
+                  fetch('http://localhost:5000/api/users/course-progress', {
+                    method: 'PUT',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      courseId: parseInt(courseId),
+                      completedLessons: [currentLesson.id],
+                    }),
+                  }).then(response => {
+                    if (response.ok) {
+                      // Update user context with new progress
+                      const updatedUser = {
+                        ...user,
+                        purchasedCourses: user.purchasedCourses.map(course =>
+                          course.courseId === parseInt(courseId)
+                            ? {
+                                ...course,
+                                progress: {
+                                  ...course.progress,
+                                  completedLessons: [
+                                    ...(course.progress.completedLessons || []),
+                                    { lessonId: currentLesson.id, completedAt: new Date() }
+                                  ]
+                                }
                               }
-                            }
-                          : course
-                      )
-                    };
-                    updateUser(updatedUser);
+                            : course
+                        )
+                      };
+                      updateUser(updatedUser);
 
-                    // Auto-advance to next lesson if available
-                    if (currentLessonIndex < allLessons.length - 1) {
-                      const nextLesson = allLessons[currentLessonIndex + 1];
-                      setTimeout(() => {
-                        handleLessonClick(nextLesson);
-                      }, 1000); // Small delay to show completion
+                      // Auto-advance to next lesson if available
+                      if (currentLessonIndex < allLessons.length - 1) {
+                        const nextLesson = allLessons[currentLessonIndex + 1];
+                        setTimeout(() => {
+                          handleLessonClick(nextLesson);
+                        }, 1000); // Small delay to show completion
+                      }
                     }
-                  }
-                }).catch(error => console.error('Error updating progress:', error));
-              }}
-            />
+                  }).catch(error => console.error('Error updating progress:', error));
+                }}
+              />
+            )}
 
             {/* Video Controls */}
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">

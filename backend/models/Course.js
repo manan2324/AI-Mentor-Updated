@@ -36,7 +36,7 @@ const currentLessonSchema = new mongoose.Schema({
   id: String,
   title: String,
   module: String,
-  videoUrl: String,
+  youtubeUrl: String,
   content: {
     introduction: String,
     keyConcepts: [keyConceptSchema]

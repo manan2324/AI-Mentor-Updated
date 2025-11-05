@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import Header from '../components/Header'
 import Sidebar from '../components/Sidebar'
+import { useAuth } from '../context/AuthContext'
 import {
   Search,
   Bell,
@@ -25,141 +26,203 @@ import {
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [coursesData, setCoursesData] = useState({
+    statsCards: [],
+    allCourses: []
+  })
+  const [loading, setLoading] = useState(true)
+  const { user, fetchUserProfile } = useAuth()
 
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true);
+      try {
+        const [coursesRes, statsRes] = await Promise.all([
+          fetch('http://localhost:5000/api/courses'),
+          fetch('http://localhost:5000/api/courses/stats/cards')
+        ]);
 
-  const statsCards = [
-    {
-      icon: <Play className="w-5 h-5 text-blue-600" />,
-      value: "8",
-      label: "Ongoing Courses",
-      change: "+12%",
-      bgColor: "bg-blue-50",
-      iconBg: "bg-blue-100"
-    },
-    {
-      icon: <CheckCircle className="w-5 h-5 text-green-600" />,
-      value: "24",
-      label: "Completed",
-      change: "+5",
-      bgColor: "bg-green-50",
-      iconBg: "bg-green-100"
-    },
-    {
-      icon: <Bookmark className="w-5 h-5 text-purple-600" />,
-      value: "12",
-      label: "Certificates",
-      change: "+2",
-      bgColor: "bg-purple-50",
-      iconBg: "bg-purple-100"
-    },
-    {
-      icon: <Clock className="w-5 h-5 text-orange-600" />,
-      value: "142",
-      label: "Hours Spent",
-      change: "+18h",
-      bgColor: "bg-orange-50",
-      iconBg: "bg-orange-100"
+        if (!coursesRes.ok) {
+          throw new Error(`Courses API failed: ${coursesRes.status}`);
+        }
+        if (!statsRes.ok) {
+          throw new Error(`Stats API failed: ${statsRes.status}`);
+        }
+
+        const allCourses = await coursesRes.json();
+        const { statsCards } = await statsRes.json();
+
+        console.log('Fetched allCourses:', allCourses);
+        console.log('Fetched statsCards:', statsCards);
+
+        setCoursesData({ allCourses, statsCards });
+        await fetchUserProfile(); // Ensure user data is up to date
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        console.log('Error details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllData();
+  }, []); // Remove fetchUserProfile dependency to prevent re-fetching on every render
+
+  // Calculate dynamic stats based on user's actual progress
+  const calculateStats = () => {
+    console.log('Calculating stats with user:', user);
+    console.log('coursesData:', coursesData);
+
+    if (!user?.purchasedCourses || !coursesData.statsCards || coursesData.statsCards.length < 4) {
+      return [
+        {
+          icon: <Play className="w-5 h-5 text-blue-600" />,
+          value: "0",
+          label: "Ongoing Courses",
+          change: "+0%",
+          bgColor: "bg-blue-50",
+          iconBg: "bg-blue-100"
+        },
+        {
+          icon: <CheckCircle className="w-5 h-5 text-green-600" />,
+          value: "0",
+          label: "Completed",
+          change: "+0",
+          bgColor: "bg-green-50",
+          iconBg: "bg-green-100"
+        },
+        {
+          icon: <Bookmark className="w-5 h-5 text-purple-600" />,
+          value: "0",
+          label: "Certificates",
+          change: "+0",
+          bgColor: "bg-purple-50",
+          iconBg: "bg-purple-100"
+        },
+        {
+          icon: <Clock className="w-5 h-5 text-orange-600" />,
+          value: "0h",
+          label: "Hours Spent",
+          change: "+0h",
+          bgColor: "bg-orange-50",
+          iconBg: "bg-orange-100"
+        }
+      ];
     }
-  ]
 
-  const popularCourses = [
-    {
-      id: 1,
-      title: "Machine Learning Fundamentals",
-      category: "AI & ML",
-      lessons: "24 lessons • Intermediate",
-      price: "₹1999",
-      rating: "4.8",
-      students: "2.5k students",
-      image: "/AI_Tutor_New_UI/Dashboard/ML_fundamentals.png",
-      categoryColor: "bg-indigo-100 text-indigo-600"
-    },
-    {
-      id: 2,
-      title: "Full Stack Web Development",
-      category: "Development",
-      lessons: "36 lessons • Beginner",
-      price: "₹1299",
-      rating: "4.9",
-      students: "2.5k students",
-      image: "/AI_Tutor_New_UI/Dashboard/full_stack_web_dev.png",
-      categoryColor: "bg-purple-100 text-purple-600"
-    },
-    {
-      id: 3,
-      title: "Data Analytics Masterclass",
-      category: "Data Science",
-      lessons: "28 lessons • Advanced",
-      price: "₹1499",
-      rating: "4.7",
-      students: "2.5k students",
-      image: "/AI_Tutor_New_UI/Dashboard/data_analytics.png",
-      categoryColor: "bg-cyan-100 text-cyan-600"
-    }
-  ]
+    let coursesInProgress = 0;
+    let completedCourses = 0;
+    const certificates = user.analytics?.certificates || 0;
+    const totalHours = user.analytics?.totalHours || 0;
 
-  const myCourses = [
-    {
-      id: 1,
-      title: "Frontend Development",
-      subtitle: "React Fundamentals",
-      progress: 75,
-      lessons: "18/24",
-      level: "Intermediate",
-      levelColor: "bg-green-100 text-green-800",
-      image: "/AI_Tutor_New_UI/Dashboard/react_fundamentals_logo.png",
-      progressColor: "bg-indigo-600"
-    },
-    {
-      id: 2,
-      title: "Python for AI",
-      subtitle: "Artificial Intelligence",
-      progress: 45,
-      lessons: "9/20",
-      level: "Beginner",
-      levelColor: "bg-blue-100 text-blue-800",
-      image: "/AI_Tutor_New_UI/Dashboard/python_for_ai_logo.png",
-      progressColor: "bg-purple-600"
-    },
-    {
-      id: 3,
-      title: "Digital Marketing",
-      subtitle: "Marketing",
-      progress: 90,
-      lessons: "27/30",
-      level: "Advanced",
-      levelColor: "bg-yellow-100 text-yellow-800",
-      image: "/AI_Tutor_New_UI/Dashboard/logo.png",
-      progressColor: "bg-cyan-600"
-    }
-  ]
+    user.purchasedCourses.forEach(purchasedCourse => {
+      // Find the course in allCourses to get lesson count
+      const courseInfo = coursesData.allCourses.find(c => c.id === purchasedCourse.courseId);
+      if (courseInfo) {
+        const totalLessons = courseInfo.lessons ? parseInt(courseInfo.lessons.split(' ')[0]) : 0;
+        const completedLessons = purchasedCourse.progress?.completedLessons?.length || 0;
 
-  const continueLearning = [
-    {
-      id: 1,
-      title: "React Fundamentals",
-      lesson: "Lesson 18: State Management",
-      progress: 75,
-      image: "/AI_Tutor_New_UI/Dashboard/react_fundamentals_logo.png",
-      progressColor: "bg-orange-400"
-    },
-    {
-      id: 2,
-      title: "Python for AI",
-      lesson: "Lesson 9: Neural Networks",
-      progress: 45,
-      image: "/AI_Tutor_New_UI/Dashboard/python_for_ai_logo.png",
-      progressColor: "bg-orange-400"
-    },
-    {
-      id: 3,
-      title: "Digital Marketing",
-      lesson: "Lesson 27: SEO Optimization",
-      progress: 90,
-      image: "/AI_Tutor_New_UI/Dashboard/logo.png",
-      progressColor: "bg-cyan-600"
-    }
-  ]
+        if (completedLessons === totalLessons && totalLessons > 0) {
+          completedCourses++;
+        } else if (completedLessons > 0) {
+          coursesInProgress++;
+        }
+      }
+    });
+
+    const result = [
+      {
+        ...coursesData.statsCards[0],
+        value: coursesInProgress.toString()
+      },
+      {
+        ...coursesData.statsCards[1],
+        value: completedCourses.toString()
+      },
+      {
+        ...coursesData.statsCards[2],
+        value: certificates.toString()
+      },
+      {
+        ...coursesData.statsCards[3],
+        value: `${totalHours}h`
+      }
+    ];
+
+    console.log('Calculated stats result:', result);
+    return result;
+  };
+
+  const dynamicStatsCards = calculateStats();
+
+  // Create dynamic myCourses from user data
+  console.log('Creating myCourses with user:', user);
+  console.log('coursesData.allCourses:', coursesData.allCourses);
+
+  const myCourses = coursesData.allCourses
+    .filter(course => user?.purchasedCourses?.some(purchased => purchased.courseId === course.id))
+    .map(course => {
+      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
+      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
+      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
+
+      const courseData = {
+        id: course.id,
+        title: course.title,
+        subtitle: course.category,
+        progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        lessons: `${completedLessons}/${totalLessons}`,
+        level: course.level,
+        levelColor: course.level === 'Beginner' ? 'bg-blue-100 text-blue-800' :
+                   course.level === 'Intermediate' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800',
+        image: course.image,
+        progressColor: 'bg-indigo-600'
+      };
+
+      console.log('Mapped course:', courseData);
+      return courseData;
+    })
+
+  console.log('Final myCourses:', myCourses);
+
+  // Create dynamic continueLearning from user data
+  console.log('Creating continueLearning');
+
+  const continueLearning = coursesData.allCourses
+    .filter(course => user?.purchasedCourses?.some(purchased => purchased.courseId === course.id))
+    .filter(course => {
+      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
+      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
+      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
+      return completedLessons > 0 && completedLessons < totalLessons;
+    })
+    .slice(0, 3) // Limit to 3 courses
+    .map(course => {
+      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
+      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
+      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
+      const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+
+      // Get current lesson info
+      const currentLesson = purchasedCourse?.progress?.currentLesson;
+      const lessonTitle = currentLesson ? `Lesson ${currentLesson.lessonId}: ${currentLesson.moduleTitle}` : `Continue from Lesson ${completedLessons + 1}`;
+
+      const continueData = {
+        id: course.id,
+        title: course.title,
+        lesson: lessonTitle,
+        progress: progress,
+        image: course.image,
+        progressColor: progress > 75 ? 'bg-cyan-600' : 'bg-orange-400'
+      };
+
+      console.log('Mapped continueLearning item:', continueData);
+      return continueData;
+    })
+
+  console.log('Final continueLearning:', continueLearning);
+
+
 
   const schedule = [
     {
@@ -173,6 +236,30 @@ const Dashboard = () => {
       color: "bg-green-50 border-l-green-500"
     }
   ]
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+        <Sidebar
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          sidebarCollapsed={sidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          activePage="dashboard"
+        />
+        <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+          sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
+        }`}>
+          <main className="flex-1 mt-10 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="text-gray-500">Loading dashboard...</div>
+            </div>
+          </main>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -192,14 +279,14 @@ const Dashboard = () => {
         sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
       }`}>
         {/* Header */}
-       
+
 
         {/* Dashboard Content */}
         <main className="flex-1 mt-10 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
           <div className="max-w-7xl mx-auto space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {statsCards.map((card, index) => (
+              {dynamicStatsCards.map((card, index) => (
                 <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`p-3 rounded-xl ${card.iconBg}`}>
@@ -218,7 +305,7 @@ const Dashboard = () => {
               <div className="xl:col-span-2">
                 <h2 className="text-xl font-bold text-gray-900 mb-6">Popular Courses</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {popularCourses.map((course, index) => (
+                  {coursesData.allCourses.slice(0, 3).map((course, index) => (
                     <Link to={`/course-preview/${course.id}`} key={index}>
                       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm h-full">
                         <div className="relative">

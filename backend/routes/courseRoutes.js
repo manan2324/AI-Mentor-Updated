@@ -6,7 +6,11 @@ import {
   getStatsCards,
   getMyCourses,
   addCourse,
-  deleteCourse
+  deleteCourse,
+  updateLessonVideo,
+  addSubtopics,
+  addLessons,
+  addModules
 } from '../controllers/courseController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
@@ -24,5 +28,9 @@ router.route('/:id/learning').get(protect, getCourseLearningData);
 // Admin routes
 router.route('/').post(protect, addCourse);
 router.route('/:id').delete(protect, deleteCourse);
+router.route('/:courseId/modules').post(protect, addModules);
+router.route('/:courseId/lessons/:lessonId/video').put(protect, updateLessonVideo);
+router.route('/:courseId/subtopics').post(protect, addSubtopics);
+router.route('/:courseId/modules/:moduleId/lessons').post(protect, addLessons);
 
 export default router;

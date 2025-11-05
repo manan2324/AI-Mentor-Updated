@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext();
 
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -49,7 +49,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
-  };
+  }, []);
 
   const logout = () => {
     setIsAuthenticated(false);

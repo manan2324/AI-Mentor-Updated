@@ -162,4 +162,172 @@ const deleteCourse = async (req, res) => {
 };
 
 
-export { getCourses, getCourseById, getCourseLearningData, getStatsCards, getMyCourses, addCourse, deleteCourse };
+// @desc    Update lesson video URL
+// @route   PUT /api/courses/:courseId/lessons/:lessonId/video
+// @access  Private/Admin
+const updateLessonVideo = async (req, res) => {
+  try {
+    const { courseId, lessonId } = req.params;
+    const { youtubeUrl } = req.body;
+
+    const course = await Course.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Find and update the lesson in modules
+    let lessonUpdated = false;
+    for (const module of course.modules) {
+      const lesson = module.lessons.find(l => l.id === lessonId);
+      if (lesson) {
+        lessonUpdated = true;
+        break; // Lesson found, but we'll update currentLesson if it's the current one
+      }
+    }
+
+    // Update currentLesson if it matches
+    if (course.currentLesson && course.currentLesson.id === lessonId) {
+      course.currentLesson.youtubeUrl = youtubeUrl;
+      await course.save();
+      return res.json({ message: 'Lesson video URL updated successfully' });
+    }
+
+    if (!lessonUpdated) {
+      return res.status(404).json({ message: 'Lesson not found' });
+    }
+
+    res.json({ message: 'Lesson video URL updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Add subtopics to a course
+// @route   POST /api/courses/:courseId/subtopics
+// @access  Private/Admin
+const addSubtopics = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { subtopics } = req.body; // Array of subtopic objects
+
+    const course = await Course.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Add subtopics to curriculum
+    if (!course.curriculum) {
+      course.curriculum = [];
+    }
+
+    course.curriculum.push(...subtopics);
+    await course.save();
+
+    res.json({ message: 'Subtopics added successfully', curriculum: course.curriculum });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Add lessons to a module
+// @route   POST /api/courses/:courseId/modules/:moduleId/lessons
+// @access  Private/Admin
+const addLessons = async (req, res) => {
+  try {
+    const { courseId, moduleId } = req.params;
+    const { lessons } = req.body; // Array of lesson objects
+
+    const course = await Course.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const module = course.modules.find(m => m.id === moduleId);
+    if (!module) {
+      return res.status(404).json({ message: 'Module not found' });
+    }
+
+    module.lessons.push(...lessons);
+    await course.save();
+
+    res.json({ message: 'Lessons added successfully', module: module });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Add a new course
+// @route   POST /api/courses
+// @access  Private/Admin
+const addCourse = async (req, res) => {
+  try {
+    const { id, title, category, level, rating, students, lessonsCount, price, image, categoryColor } = req.body;
+
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    // Check if course with this id already exists
+    const existingCourse = await Course.findOne({ id });
+    if (existingCourse) {
+      return res.status(400).json({ message: 'Course with this ID already exists' });
+    }
+
+    const course = new Course({
+      id,
+      title,
+      category,
+      level,
+      rating,
+      students,
+      lessonsCount,
+      price,
+      image,
+      categoryColor
+    });
+
+    const createdCourse = await course.save();
+    res.status(201).json(createdCourse);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// @desc    Add modules to a course
+// @route   POST /api/courses/:courseId/modules
+// @access  Private/Admin
+const addModules = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { modules } = req.body;
+
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied. Admin role required.' });
+    }
+
+    const course = await Course.findOne({ id: courseId });
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Add modules to the course
+    if (!course.modules) {
+      course.modules = [];
+    }
+    course.modules.push(...modules);
+
+    await course.save();
+    res.json({ message: 'Modules added successfully', course });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+export { getCourses, getCourseById, getCourseLearningData, getStatsCards, getMyCourses, addCourse, deleteCourse, updateLessonVideo, addSubtopics, addLessons, addModules };
