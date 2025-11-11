@@ -8,7 +8,9 @@ import {
   Shield,
   Palette,
   Globe,
-  Camera
+  Camera,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import axios from "axios";
 
@@ -31,7 +33,30 @@ export default function Settings() {
     email: "",
     bio: ""
   });
+  const [settingsData, setSettingsData] = useState({
+    notifications: {
+      emailNotifications: true,
+      pushNotifications: true,
+      courseUpdates: true,
+      discussionReplies: true
+    },
+    security: {
+      twoFactorAuth: false,
+      loginAlerts: true
+    },
+    appearance: {
+      theme: 'light',
+      language: 'en'
+    }
+  });
   const [loading, setLoading] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -227,16 +252,429 @@ export default function Settings() {
             </div>
           )}
 
-          {activeSetting !== "Profile" && (
+          {activeSetting === "Notifications" && (
             <div className="max-w-[896px]">
               <div className="mb-8">
-                <h1 className="text-[30px] font-bold text-[#1F2937] font-[Inter] mb-2">{activeSetting} Settings</h1>
-                <p className="text-[16px] text-[#4B5563] font-[Inter]">Manage your {activeSetting.toLowerCase()} preferences</p>
+                <h1 className="text-[30px] font-bold text-[#1F2937] font-[Inter] mb-2">Notification Settings</h1>
+                <p className="text-[16px] text-[#4B5563] font-[Inter]">Choose how you want to be notified about updates</p>
               </div>
               <div className="bg-white rounded-[24px] shadow-[0_4px_6px_0_rgba(0,0,0,0.10),0_10px_15px_0_rgba(0,0,0,0.10)] p-8">
-                <p className="text-center text-gray-500">
-                  {activeSetting} settings will be available soon.
-                </p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter]">Email Notifications</h3>
+                      <p className="text-[14px] text-[#6B7280] font-[Inter]">Receive notifications via email</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settingsData.notifications.emailNotifications}
+                        onChange={(e) => setSettingsData(prev => ({
+                          ...prev,
+                          notifications: { ...prev.notifications, emailNotifications: e.target.checked }
+                        }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00BEA5]/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00BEA5]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter]">Push Notifications</h3>
+                      <p className="text-[14px] text-[#6B7280] font-[Inter]">Receive push notifications in your browser</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settingsData.notifications.pushNotifications}
+                        onChange={(e) => setSettingsData(prev => ({
+                          ...prev,
+                          notifications: { ...prev.notifications, pushNotifications: e.target.checked }
+                        }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00BEA5]/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00BEA5]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter]">Course Updates</h3>
+                      <p className="text-[14px] text-[#6B7280] font-[Inter]">Get notified about new lessons and course updates</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settingsData.notifications.courseUpdates}
+                        onChange={(e) => setSettingsData(prev => ({
+                          ...prev,
+                          notifications: { ...prev.notifications, courseUpdates: e.target.checked }
+                        }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00BEA5]/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00BEA5]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter]">Discussion Replies</h3>
+                      <p className="text-[14px] text-[#6B7280] font-[Inter]">Get notified when someone replies to your discussions</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settingsData.notifications.discussionReplies}
+                        onChange={(e) => setSettingsData(prev => ({
+                          ...prev,
+                          notifications: { ...prev.notifications, discussionReplies: e.target.checked }
+                        }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00BEA5]/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00BEA5]"></div>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-[#E5E7EB] mt-6">
+                  <button
+                    type="button"
+                    className="h-[50px] px-6 rounded-xl border border-[#D1D5DB] bg-white text-[#374151] text-[16px] font-medium font-[Inter] hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        await axios.put(
+                          'http://localhost:5000/api/users/settings',
+                          { notifications: settingsData.notifications },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        alert('Notification settings updated successfully!');
+                      } catch (error) {
+                        console.error('Error updating settings:', error);
+                        alert('Failed to update settings. Please try again.');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="h-[50px] px-6 rounded-xl bg-gradient-to-r from-[#00BEA5] to-[#00BEA5] text-white text-[16px] font-medium font-[Inter] hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSetting === "Password & Security" && (
+            <div className="max-w-[896px]">
+              <div className="mb-8">
+                <h1 className="text-[30px] font-bold text-[#1F2937] font-[Inter] mb-2">Password & Security</h1>
+                <p className="text-[16px] text-[#4B5563] font-[Inter]">Manage your password and security preferences</p>
+              </div>
+              <div className="bg-white rounded-[24px] shadow-[0_4px_6px_0_rgba(0,0,0,0.10),0_10px_15px_0_rgba(0,0,0,0.10)] p-8">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter]">Two-Factor Authentication</h3>
+                      <p className="text-[14px] text-[#6B7280] font-[Inter]">Add an extra layer of security to your account</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settingsData.security.twoFactorAuth}
+                        onChange={(e) => setSettingsData(prev => ({
+                          ...prev,
+                          security: { ...prev.security, twoFactorAuth: e.target.checked }
+                        }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00BEA5]/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00BEA5]"></div>
+                    </label>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter]">Login Alerts</h3>
+                      <p className="text-[14px] text-[#6B7280] font-[Inter]">Get notified when your account is accessed from a new device</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settingsData.security.loginAlerts}
+                        onChange={(e) => setSettingsData(prev => ({
+                          ...prev,
+                          security: { ...prev.security, loginAlerts: e.target.checked }
+                        }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#00BEA5]/25 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00BEA5]"></div>
+                    </label>
+                  </div>
+
+                  <div className="border-t border-[#E5E7EB] pt-6">
+                    <h3 className="text-[18px] font-semibold text-[#1F2937] font-[Inter] mb-4">Change Password</h3>
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <label className="absolute -top-2 left-4 bg-white px-2 text-[14px] text-[#475569] font-medium font-[Inter]">
+                          Current Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showCurrentPassword ? "text" : "password"}
+                            value={passwordData.currentPassword}
+                            onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                            className="w-full h-[50px] px-4 pr-12 rounded-xl border border-[#D1D5DB] text-[16px] font-[Inter] focus:ring-2 focus:ring-[#00BEA5] focus:border-[#00BEA5] bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#6B7280] hover:text-[#374151]"
+                          >
+                            {showCurrentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="relative">
+                        <label className="absolute -top-2 left-4 bg-white px-2 text-[14px] text-[#475569] font-medium font-[Inter]">
+                          New Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showNewPassword ? "text" : "password"}
+                            value={passwordData.newPassword}
+                            onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                            className="w-full h-[50px] px-4 pr-12 rounded-xl border border-[#D1D5DB] text-[16px] font-[Inter] focus:ring-2 focus:ring-[#00BEA5] focus:border-[#00BEA5] bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#6B7280] hover:text-[#374151]"
+                          >
+                            {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="relative">
+                        <label className="absolute -top-2 left-4 bg-white px-2 text-[14px] text-[#475569] font-medium font-[Inter]">
+                          Confirm New Password
+                        </label>
+                        <input
+                          type="password"
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          className="w-full h-[50px] px-4 rounded-xl border border-[#D1D5DB] text-[16px] font-[Inter] focus:ring-2 focus:ring-[#00BEA5] focus:border-[#00BEA5] bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-[#E5E7EB] mt-6">
+                  <button
+                    type="button"
+                    className="h-[50px] px-6 rounded-xl border border-[#D1D5DB] bg-white text-[#374151] text-[16px] font-medium font-[Inter] hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (passwordData.newPassword !== passwordData.confirmPassword) {
+                        alert('New passwords do not match!');
+                        return;
+                      }
+                      setLoading(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        await axios.put(
+                          'http://localhost:5000/api/users/settings',
+                          { security: settingsData.security },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        alert('Security settings updated successfully!');
+                        setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                      } catch (error) {
+                        console.error('Error updating settings:', error);
+                        alert('Failed to update settings. Please try again.');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="h-[50px] px-6 rounded-xl bg-gradient-to-r from-[#00BEA5] to-[#00BEA5] text-white text-[16px] font-medium font-[Inter] hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSetting === "Appearance" && (
+            <div className="max-w-[896px]">
+              <div className="mb-8">
+                <h1 className="text-[30px] font-bold text-[#1F2937] font-[Inter] mb-2">Appearance Settings</h1>
+                <p className="text-[16px] text-[#4B5563] font-[Inter]">Customize the look and feel of your interface</p>
+              </div>
+              <div className="bg-white rounded-[24px] shadow-[0_4px_6px_0_rgba(0,0,0,0.10),0_10px_15px_0_rgba(0,0,0,0.10)] p-8">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter] mb-3">Theme</h3>
+                    <div className="grid grid-cols-3 gap-4">
+                      {[
+                        { value: 'light', label: 'Light', icon: '☀️' },
+                        { value: 'dark', label: 'Dark', icon: '🌙' },
+                        { value: 'auto', label: 'Auto', icon: '⚙️' }
+                      ].map((theme) => (
+                        <button
+                          key={theme.value}
+                          onClick={() => setSettingsData(prev => ({
+                            ...prev,
+                            appearance: { ...prev.appearance, theme: theme.value }
+                          }))}
+                          className={`p-4 rounded-xl border-2 transition-colors ${
+                            settingsData.appearance.theme === theme.value
+                              ? 'border-[#00BEA5] bg-[#E8F9F7]'
+                              : 'border-[#D1D5DB] hover:border-[#00BEA5]'
+                          }`}
+                        >
+                          <div className="text-2xl mb-2">{theme.icon}</div>
+                          <div className="text-[14px] font-medium text-[#1F2937] font-[Inter]">{theme.label}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter] mb-3">Language</h3>
+                    <select
+                      value={settingsData.appearance.language}
+                      onChange={(e) => setSettingsData(prev => ({
+                        ...prev,
+                        appearance: { ...prev.appearance, language: e.target.value }
+                      }))}
+                      className="w-full h-[50px] px-4 rounded-xl border border-[#D1D5DB] text-[16px] font-[Inter] focus:ring-2 focus:ring-[#00BEA5] focus:border-[#00BEA5] bg-white"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
+                      <option value="fr">Français</option>
+                      <option value="de">Deutsch</option>
+                      <option value="it">Italiano</option>
+                      <option value="pt">Português</option>
+                      <option value="ru">Русский</option>
+                      <option value="zh">中文</option>
+                      <option value="ja">日本語</option>
+                      <option value="ko">한국어</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-[#E5E7EB] mt-6">
+                  <button
+                    type="button"
+                    className="h-[50px] px-6 rounded-xl border border-[#D1D5DB] bg-white text-[#374151] text-[16px] font-medium font-[Inter] hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        await axios.put(
+                          'http://localhost:5000/api/users/settings',
+                          { appearance: settingsData.appearance },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        alert('Appearance settings updated successfully!');
+                      } catch (error) {
+                        console.error('Error updating settings:', error);
+                        alert('Failed to update settings. Please try again.');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="h-[50px] px-6 rounded-xl bg-gradient-to-r from-[#00BEA5] to-[#00BEA5] text-white text-[16px] font-medium font-[Inter] hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSetting === "Language" && (
+            <div className="max-w-[896px]">
+              <div className="mb-8">
+                <h1 className="text-[30px] font-bold text-[#1F2937] font-[Inter] mb-2">Language Settings</h1>
+                <p className="text-[16px] text-[#4B5563] font-[Inter]">Choose your preferred language for the interface</p>
+              </div>
+              <div className="bg-white rounded-[24px] shadow-[0_4px_6px_0_rgba(0,0,0,0.10),0_10px_15px_0_rgba(0,0,0,0.10)] p-8">
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-[16px] font-semibold text-[#1F2937] font-[Inter] mb-3">Interface Language</h3>
+                    <select
+                      value={settingsData.appearance.language}
+                      onChange={(e) => setSettingsData(prev => ({
+                        ...prev,
+                        appearance: { ...prev.appearance, language: e.target.value }
+                      }))}
+                      className="w-full h-[50px] px-4 rounded-xl border border-[#D1D5DB] text-[16px] font-[Inter] focus:ring-2 focus:ring-[#00BEA5] focus:border-[#00BEA5] bg-white"
+                    >
+                      <option value="en">English</option>
+                      <option value="es">Español</option>
+                      <option value="fr">Français</option>
+                      <option value="de">Deutsch</option>
+                      <option value="it">Italiano</option>
+                      <option value="pt">Português</option>
+                      <option value="ru">Русский</option>
+                      <option value="zh">中文</option>
+                      <option value="ja">日本語</option>
+                      <option value="ko">한국어</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-[#E5E7EB] mt-6">
+                  <button
+                    type="button"
+                    className="h-[50px] px-6 rounded-xl border border-[#D1D5DB] bg-white text-[#374151] text-[16px] font-medium font-[Inter] hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setLoading(true);
+                      try {
+                        const token = localStorage.getItem('token');
+                        await axios.put(
+                          'http://localhost:5000/api/users/settings',
+                          { appearance: { language: settingsData.appearance.language } },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        alert('Language settings updated successfully!');
+                      } catch (error) {
+                        console.error('Error updating settings:', error);
+                        alert('Failed to update settings. Please try again.');
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                    disabled={loading}
+                    className="h-[50px] px-6 rounded-xl bg-gradient-to-r from-[#00BEA5] to-[#00BEA5] text-white text-[16px] font-medium font-[Inter] hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </div>
               </div>
             </div>
           )}

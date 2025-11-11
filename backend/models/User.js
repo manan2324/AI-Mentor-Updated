@@ -107,11 +107,52 @@ const userSchema = mongoose.Schema(
         type: Number,
         default: 0
       },
-      learningHoursChart: [{
-        date: String,
-        hours: Number
-      }]
+    learningHoursChart: [{
+      date: String,
+      hours: Number
+    }]
+  },
+  settings: {
+    notifications: {
+      emailNotifications: {
+        type: Boolean,
+        default: true
+      },
+      pushNotifications: {
+        type: Boolean,
+        default: true
+      },
+      courseUpdates: {
+        type: Boolean,
+        default: true
+      },
+      discussionReplies: {
+        type: Boolean,
+        default: true
+      }
     },
+    security: {
+      twoFactorAuth: {
+        type: Boolean,
+        default: false
+      },
+      loginAlerts: {
+        type: Boolean,
+        default: true
+      }
+    },
+    appearance: {
+      theme: {
+        type: String,
+        enum: ['light', 'dark', 'auto'],
+        default: 'light'
+      },
+      language: {
+        type: String,
+        default: 'en'
+      }
+    }
+  },
   },
   {
     timestamps: true,

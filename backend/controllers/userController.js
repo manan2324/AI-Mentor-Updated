@@ -400,6 +400,55 @@ const getWatchedVideos = async (req, res) => {
   }
 };
 
+// @desc    Update user settings
+// @route   PUT /api/users/settings
+// @access  Private
+const updateUserSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const { notifications, security, appearance } = req.body;
+
+    // Update notifications settings
+    if (notifications) {
+      user.settings.notifications = {
+        ...user.settings.notifications,
+        ...notifications
+      };
+    }
+
+    // Update security settings
+    if (security) {
+      user.settings.security = {
+        ...user.settings.security,
+        ...security
+      };
+    }
+
+    // Update appearance settings
+    if (appearance) {
+      user.settings.appearance = {
+        ...user.settings.appearance,
+        ...appearance
+      };
+    }
+
+    const updatedUser = await user.save();
+
+    res.json({
+      message: 'Settings updated successfully',
+      settings: updatedUser.settings
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // Helper function to calculate learning streak
 const calculateLearningStreak = (studySessions) => {
   if (!studySessions || studySessions.length === 0) return 0;
@@ -433,4 +482,4 @@ const calculateLearningStreak = (studySessions) => {
   return streak;
 };
 
-export { registerUser, loginUser, getUserProfile, updateUserProfile, purchaseCourse, updateCourseProgress, getWatchedVideos };
+export { registerUser, loginUser, getUserProfile, updateUserProfile, purchaseCourse, updateCourseProgress, getWatchedVideos, updateUserSettings };
