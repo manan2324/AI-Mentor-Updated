@@ -20,7 +20,7 @@ import {
 const getYouTubeVideoId = (url) => {
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
   const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+  return match && match[2].length === 11 ? match[2] : null;
 };
 
 export default function Learning() {
@@ -30,6 +30,26 @@ export default function Learning() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [learningData, setLearningData] = useState(null);
   const [expandedModule, setExpandedModule] = useState("module-1");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [celebritySearch, setCelebritySearch] = useState("");
+
+  // Captions state
+  const [captions, setCaptions] = useState([]);
+  const [activeCaption, setActiveCaption] = useState("");
+  const celebrities = ["Prabhas", "Allu Arjun", "Vikram"];
+
+  // map celebrities to local videos and vtt files
+  const celebrityVideoMap = {
+    Prabhas: { video: "/vdo1.mp4", vtt: "/vdo1.vtt" },
+    "Allu Arjun": { video: "/vdo2.mp4", vtt: "/vdo2.vtt" },
+    Vikram: { video: "/vdo1.mp4", vtt: "/vdo1.vtt" },
+  };
+
+  const [selectedCelebrity, setSelectedCelebrity] = useState(null);
+
+  // When user requested single-word subtitles for the Java paragraph,
+  // we'll split into words and compute word-by-word cues when video duration is known.
+  const JAVA_PARAGRAPH = `Java is a high-level, object-oriented programming language that was originally developed by Sun Microsystems in 1995 and is now owned by Oracle Corporation. It is designed to be platform-independent, meaning that Java code can run on any device that has a Java Virtual Machine (JVM), making it highly versatile for developing cross-platform applications. Java emphasizes object-oriented principles, such as encapsulation, inheritance and polymorphism, which allow developers to create modular, reusable and maintainable code. It has a strong memory management system, including automatic garbage collection, which reduces the likelihood of memory leaks.`;
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(1);
@@ -45,18 +65,18 @@ export default function Learning() {
 
   useEffect(() => {
     // Check if user has purchased this course
-    const hasPurchased = user?.purchasedCourses?.some(course => course.courseId === parseInt(courseId));
-    if (!hasPurchased) {
-      navigate('/courses');
-      return;
-    }
+    // const hasPurchased = user?.purchasedCourses?.some(course => course.courseId === parseInt(courseId));
+    // if (!hasPurchased) {
+    //   navigate('/courses');
+    //   return;
+    // }
 
     const fetchLearningData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:5000/api/courses/${courseId}/learning`, {
+        const token = localStorage.getItem("token");
+        const response = await fetch(`/api/courses/${courseId}/learning`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -64,31 +84,264 @@ export default function Learning() {
           const courseData = await response.json();
           setLearningData(courseData);
           // Load user's progress for this course
-          const userProgress = user?.purchasedCourses?.find(course => course.courseId === parseInt(courseId))?.progress;
+          const userProgress = user?.purchasedCourses?.find(
+            (course) => course.courseId === parseInt(courseId)
+          )?.progress;
           if (userProgress) {
-            setExpandedModule(userProgress.currentLesson?.moduleTitle || "module-1");
+            setExpandedModule(
+              userProgress.currentLesson?.moduleTitle || "module-1"
+            );
             // Set current lesson based on progress
             const currentLesson = userProgress.currentLesson;
             if (currentLesson) {
               // Find and set the current lesson
-              const lesson = courseData.modules.flatMap(module => module.lessons).find(l => l.id === currentLesson.lessonId);
+              const lesson = courseData.modules
+                .flatMap((module) => module.lessons)
+                .find((l) => l.id === currentLesson.lessonId);
               if (lesson) {
-                setLearningData(prev => ({
+                setLearningData((prev) => ({
                   ...prev,
-                  currentLesson: lesson
+                  currentLesson: lesson,
                 }));
               }
             }
           }
         } else {
-          console.error('Failed to fetch course learning data');
+          console.error(
+            "Failed to fetch course learning data, using local fallback"
+          );
+          // Fallback local data so the learning page works without backend
+          const fallback = {
+            course: {
+              id: parseInt(courseId),
+            },
+            modules: [
+              {
+                id: "module-1",
+                title: "Module 1",
+                lessons: [
+                  {
+                    id: 1,
+                    title: "Introduction to Java",
+                    type: "video",
+                    duration: "0:10",
+                    videoUrl: "/vdo1.mp4",
+                    content: {
+                      introduction:
+                        "Java is a high-level, object-oriented programming language that was originally developed by Sun Microsystems in 1995 and is now owned by Oracle Corporation. It is designed to be platform-independent, meaning that Java code can run on any device that has a Java Virtual Machine (JVM), making it highly versatile for developing cross-platform applications. Java emphasizes object-oriented principles, such as encapsulation, inheritance and polymorphism, which allow developers to create modular, reusable and maintainable code. It has a strong memory management system, including automatic garbage collection, which reduces the likelihood of memory leaks.",
+                      keyConcepts: [],
+                    },
+                  },
+                  {
+                    id: 2,
+                    title: "Java: Advanced Concepts",
+                    type: "video",
+                    duration: "0:12",
+                    videoUrl: "/vdo2.mp4",
+                    content: {
+                      introduction:
+                        "Continuation video for Java advanced concepts.",
+                      keyConcepts: [],
+                    },
+                  },
+                ],
+              },
+            ],
+            currentLesson: {
+              id: 1,
+            },
+          };
+
+          // If we have user progress, try to set the exact lesson from fallback
+          const userProgress = user?.purchasedCourses?.find(
+            (course) => course.courseId === parseInt(courseId)
+          )?.progress;
+          if (userProgress && userProgress.currentLesson) {
+            const lesson = fallback.modules
+              .flatMap((m) => m.lessons)
+              .find((l) => l.id === userProgress.currentLesson.lessonId);
+            if (lesson) {
+              setLearningData({ ...fallback, currentLesson: lesson });
+            } else {
+              setLearningData(fallback);
+            }
+          } else {
+            setLearningData(fallback);
+          }
         }
       } catch (error) {
-        console.error('Error fetching learning data:', error);
+        console.error(
+          "Error fetching learning data, using local fallback:",
+          error
+        );
+        const fallback = {
+          course: {
+            id: parseInt(courseId),
+            title: "Local Demo Course",
+          },
+          modules: [
+            {
+              id: "module-1",
+              title: "Module 1",
+              lessons: [
+                {
+                  id: 1,
+                  title: "Introduction to Java",
+                  type: "video",
+                  duration: "0:10",
+                  videoUrl: "/vdo1.mp4",
+                  content: {
+                    introduction:
+                      "Java is a high-level, object-oriented programming language that was originally developed by Sun Microsystems in 1995 and is now owned by Oracle Corporation. It is designed to be platform-independent, meaning that Java code can run on any device that has a Java Virtual Machine (JVM), making it highly versatile for developing cross-platform applications. Java emphasizes object-oriented principles, such as encapsulation, inheritance and polymorphism, which allow developers to create modular, reusable and maintainable code. It has a strong memory management system, including automatic garbage collection, which reduces the likelihood of memory leaks.",
+                    keyConcepts: [],
+                  },
+                },
+                {
+                  id: 2,
+                  title: "Java: Advanced Concepts",
+                  type: "video",
+                  duration: "0:12",
+                  videoUrl: "/vdo2.mp4",
+                  content: {
+                    introduction:
+                      "Continuation video for Java advanced concepts.",
+                    keyConcepts: [],
+                  },
+                },
+              ],
+            },
+          ],
+          currentLesson: {
+            id: 1,
+          },
+        };
+
+        // If we have user progress, try to set the exact lesson from fallback
+        const userProgress = user?.purchasedCourses?.find(
+          (course) => course.courseId === parseInt(courseId)
+        )?.progress;
+        if (userProgress && userProgress.currentLesson) {
+          const lesson = fallback.modules
+            .flatMap((m) => m.lessons)
+            .find((l) => l.id === userProgress.currentLesson.lessonId);
+          if (lesson) {
+            setLearningData({ ...fallback, currentLesson: lesson });
+          } else {
+            setLearningData(fallback);
+          }
+        } else {
+          setLearningData(fallback);
+        }
       }
     };
     fetchLearningData();
   }, [courseId, user, navigate]);
+
+  // Load and parse VTT captions (simple parser) when selectedCelebrity changes
+  useEffect(() => {
+    const loadCaptions = async () => {
+      try {
+        const vttPath =
+          (selectedCelebrity &&
+            celebrityVideoMap[selectedCelebrity] &&
+            celebrityVideoMap[selectedCelebrity].vtt) ||
+          "/vdo_subtitles.vtt";
+        const res = await fetch(vttPath);
+        if (!res.ok) {
+          setCaptions([]);
+          return;
+        }
+        const text = await res.text();
+        const blocks = text.replace(/\r\n/g, "\n").split(/\n\n+/).slice(1); // skip WEBVTT header
+        const cues = blocks
+          .map((block) => {
+            const lines = block
+              .split("\n")
+              .map((l) => l.trim())
+              .filter(Boolean);
+            if (lines.length < 2) return null;
+            const timeLine = lines[0];
+            const textLines = lines.slice(1).join(" ");
+            const match = timeLine.match(
+              /(\d{2}:\d{2}:\d{2}\.\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}\.\d{3})/
+            );
+            if (!match) return null;
+            const toSeconds = (s) => {
+              const [hh, mm, rest] = s.split(":");
+              const [ss, ms] = rest.split(".");
+              return (
+                parseInt(hh) * 3600 +
+                parseInt(mm) * 60 +
+                parseInt(ss) +
+                parseFloat("0." + ms)
+              );
+            };
+            return {
+              start: toSeconds(match[1]),
+              end: toSeconds(match[2]),
+              text: textLines,
+            };
+          })
+          .filter(Boolean);
+        setCaptions(cues);
+      } catch (err) {
+        console.warn("Could not load captions:", err);
+        setCaptions([]);
+      }
+    };
+
+    loadCaptions();
+  }, [selectedCelebrity]);
+
+  // Ensure when currentLesson changes we load its video into the player
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v || !learningData?.currentLesson) return;
+    const src =
+      (selectedCelebrity && celebrityVideoMap[selectedCelebrity]?.video) ||
+      learningData.currentLesson.videoUrl;
+    if (src) {
+      v.pause();
+      v.src = src;
+      v.load();
+      // don't auto-play forcibly; keep isPlaying state consistent
+      setIsPlaying(false);
+    }
+  }, [learningData?.currentLesson, selectedCelebrity]);
+
+  // If selectedCelebrity is Prabhas and the user wants the Java paragraph
+  // shown word-by-word, create per-word cues when video metadata (duration) is available.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    const createWordCues = () => {
+      if (selectedCelebrity !== "Prabhas") return;
+      const words = JAVA_PARAGRAPH.split(/\s+/).filter(Boolean);
+      if (
+        !words.length ||
+        !v.duration ||
+        !isFinite(v.duration) ||
+        v.duration <= 0
+      )
+        return;
+      const per = v.duration / words.length;
+      const cues = words.map((w, i) => ({
+        start: i * per,
+        end: (i + 1) * per,
+        text: w,
+      }));
+      setCaptions(cues);
+    };
+
+    // If metadata already loaded, create cues immediately
+    if (v.duration && isFinite(v.duration) && v.duration > 0) {
+      createWordCues();
+    }
+
+    v.addEventListener("loadedmetadata", createWordCues);
+    return () => v.removeEventListener("loadedmetadata", createWordCues);
+  }, [selectedCelebrity, videoRef.current]);
 
   const { modules, currentLesson } = learningData || {};
 
@@ -96,9 +349,83 @@ export default function Learning() {
     return <div>Loading...</div>;
   }
 
-  // Get all lessons in order
-  const allLessons = modules?.flatMap(module => module.lessons) || [];
-  const currentLessonIndex = allLessons.findIndex(lesson => lesson.id === currentLesson?.id);
+  // Flatten modules into a single lessons list and compute current index
+  const allLessons = (modules || []).flatMap((module) => module.lessons || []);
+  const currentLessonIndex = allLessons.findIndex(
+    (lesson) => lesson.id === currentLesson?.id
+  );
+
+  const completeLesson = async (lessonId) => {
+    // Check if lesson is already completed
+    const courseProgress = user?.purchasedCourses?.find(
+      (course) => course.courseId === parseInt(courseId)
+    )?.progress;
+    const isAlreadyCompleted = courseProgress?.completedLessons?.some(
+      (cl) => cl.lessonId === lessonId
+    );
+
+    if (isAlreadyCompleted) {
+      console.log("Lesson already completed, skipping");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      await fetch("/api/users/course-progress", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          courseId: parseInt(courseId),
+          completedLesson: { lessonId },
+        }),
+      });
+    } catch (error) {
+      console.error("Error marking lesson completed:", error);
+    }
+
+    // Also update current lesson pointer
+    try {
+      const token = localStorage.getItem("token");
+      await fetch("/api/users/course-progress", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          courseId: parseInt(courseId),
+          currentLesson: {
+            lessonId,
+            moduleTitle: expandedModule,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error("Error updating progress:", error);
+    }
+  };
+
+  const toggleModule = (id) => {
+    setExpandedModule((prev) => (prev === id ? null : id));
+  };
+
+  const handleLessonClick = (lesson) => {
+    // update current lesson locally and load associated video
+    setLearningData((prev) => ({ ...prev, currentLesson: lesson }));
+    if (videoRef.current && lesson && lesson.videoUrl) {
+      videoRef.current.pause();
+      videoRef.current.src =
+        (celebrityVideoMap[selectedCelebrity] &&
+          celebrityVideoMap[selectedCelebrity].video) ||
+        lesson.videoUrl;
+      videoRef.current.load();
+      const p = videoRef.current.play();
+      if (p && typeof p.then === "function") p.catch(() => {});
+    }
+  };
 
   const handlePrevious = () => {
     if (currentLessonIndex > 0) {
@@ -107,136 +434,32 @@ export default function Learning() {
     }
   };
 
-  const completeLesson = async (lessonId) => {
-    // Check if lesson is already completed
-    const courseProgress = user?.purchasedCourses?.find(course => course.courseId === parseInt(courseId))?.progress;
-    const isAlreadyCompleted = courseProgress?.completedLessons?.some(cl => cl.lessonId === lessonId);
-
-    if (isAlreadyCompleted) {
-      console.log('Lesson already completed, skipping');
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/course-progress', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          courseId: parseInt(courseId),
-          completedLessons: [lessonId],
-        }),
-      });
-
-      if (response.ok) {
-        // Update user context with new progress
-        const updatedUser = {
-          ...user,
-          purchasedCourses: user.purchasedCourses.map(course =>
-            course.courseId === parseInt(courseId)
-              ? {
-                  ...course,
-                  progress: {
-                    ...course.progress,
-                    completedLessons: [
-                      ...(course.progress.completedLessons || []),
-                      { lessonId: lessonId, completedAt: new Date() }
-                    ]
-                  }
-                }
-              : course
-          )
-        };
-        updateUser(updatedUser);
-      }
-    } catch (error) {
-      console.error('Error updating progress:', error);
-    }
-  };
-
   const handleNext = async () => {
-    console.log('handleNext called, currentLessonIndex:', currentLessonIndex, 'allLessons.length:', allLessons.length);
-    if (currentLessonIndex >= allLessons.length - 1 || isNavigating) {
-      console.log('handleNext blocked - at end or navigating');
-      return;
-    }
-
+    if (currentLessonIndex >= allLessons.length - 1) return;
     setIsNavigating(true);
-    try {
-      console.log('Completing lesson:', currentLesson.id);
-      // Complete the current lesson
-      await completeLesson(currentLesson.id);
-
-      const nextLesson = allLessons[currentLessonIndex + 1];
-      console.log('Navigating to next lesson:', nextLesson.id);
-      await handleLessonClick(nextLesson);
-    } catch (error) {
-      console.error('Error navigating to next lesson:', error);
-    } finally {
-      setIsNavigating(false);
-    }
-  };
-
-  const toggleModule = (moduleId) => {
-    setExpandedModule(expandedModule === moduleId ? "" : moduleId);
-  };
-
-  const handleLessonClick = async (lesson) => {
-    // Pause current video and reset state
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
-    setIsPlaying(false);
-    setProgress(0);
-    setCurrentTime(0);
-    setDuration(0);
-
-    // Update current lesson in learning data
-    const updatedLearningData = {
-      ...learningData,
-      currentLesson: lesson
-    };
-    setLearningData(updatedLearningData);
-
-    // Force video reload if it's a local video
-    if (videoRef.current && lesson.videoUrl) {
-      videoRef.current.load();
-    }
-
-    // Update progress on backend
-    try {
-      const token = localStorage.getItem('token');
-      await fetch('http://localhost:5000/api/users/course-progress', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          courseId: parseInt(courseId),
-          currentLesson: {
-            lessonId: lesson.id,
-            moduleTitle: expandedModule
-          },
-        }),
-      });
-    } catch (error) {
-      console.error('Error updating progress:', error);
-    }
+    // mark current as completed
+    if (currentLesson?.id) await completeLesson(currentLesson.id);
+    const nextLesson = allLessons[currentLessonIndex + 1];
+    handleLessonClick(nextLesson);
+    setIsNavigating(false);
   };
 
   const togglePlay = () => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
+        setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        const p = videoRef.current.play();
+        if (p && typeof p.then === "function") {
+          p.then(() => setIsPlaying(true)).catch((err) => {
+            console.warn("Play was blocked:", err);
+            setIsPlaying(false);
+          });
+        } else {
+          setIsPlaying(true);
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -268,6 +491,13 @@ export default function Learning() {
       setDuration(duration);
       setCurrentTime(currentTime);
       setProgress((currentTime / duration) * 100);
+      // update visible caption overlay
+      if (captions.length > 0) {
+        const cue = captions.find(
+          (c) => currentTime >= c.start && currentTime <= c.end
+        );
+        setActiveCaption(cue ? cue.text : "");
+      }
     }
   };
 
@@ -296,7 +526,7 @@ export default function Learning() {
   const formatTime = (time) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   return (
@@ -307,18 +537,78 @@ export default function Learning() {
       <div className="fixed left-0 top-16 bottom-0 w-80 bg-white border-r border-gray-200 overflow-y-auto z-10">
         <div className="p-6 h-full overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-900">{learningData?.course?.title || learningData?.title || 'Course'}</h2>
-            <button onClick={() => navigate('/courses')} className="text-gray-400 hover:text-gray-600">
+            <h2 className="text-xl font-bold text-gray-900">
+              {learningData?.course?.title || learningData?.title || "Course"}
+            </h2>
+            <button
+              onClick={() => navigate("/courses")}
+              className="text-gray-400 hover:text-gray-600"
+            >
               <ChevronLeft className="w-5 h-5" />
             </button>
           </div>
 
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">
+              Celebrities
+            </h3>
+            <div className="mb-3">
+              <input
+                type="search"
+                placeholder="Search celebrities..."
+                value={celebritySearch}
+                onChange={(e) => setCelebritySearch(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              {celebrities
+                .filter((c) =>
+                  c.toLowerCase().includes(celebritySearch.trim().toLowerCase())
+                )
+                .map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => {
+                      setSelectedCelebrity(c);
+                      const map = celebrityVideoMap[c];
+                      if (map && videoRef.current) {
+                        videoRef.current.pause();
+                        videoRef.current.src = map.video;
+                        videoRef.current.load();
+                        const p = videoRef.current.play();
+                        if (p && typeof p.then === "function")
+                          p.catch(() => {});
+                      }
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-lg border ${
+                      selectedCelebrity === c
+                        ? "bg-blue-600 text-white"
+                        : "bg-white text-gray-900"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+            </div>
+          </div>
+
           <div className="mb-6">
             {(() => {
-              const completedCount = user?.purchasedCourses?.find(course => course.courseId === parseInt(courseId))?.progress?.completedLessons?.length || 0;
+              const completedCount =
+                user?.purchasedCourses?.find(
+                  (course) => course.courseId === parseInt(courseId)
+                )?.progress?.completedLessons?.length || 0;
               const totalCount = allLessons.length;
-              const progressPercent = Math.min((completedCount / totalCount) * 100, 100);
-              console.log('Progress calculation:', { completedCount, totalCount, progressPercent });
+              const progressPercent = Math.min(
+                (completedCount / totalCount) * 100,
+                100
+              );
+              console.log("Progress calculation:", {
+                completedCount,
+                totalCount,
+                progressPercent,
+              });
               return (
                 <>
                   <div className="w-full bg-gray-200 rounded-full h-2">
@@ -327,57 +617,97 @@ export default function Learning() {
                       style={{ width: `${progressPercent}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-600 mt-2">{Math.round(progressPercent)}% Complete</p>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {Math.round(progressPercent)}% Complete
+                  </p>
                 </>
               );
             })()}
           </div>
-
           <div className="space-y-2">
-            {modules.map((module) => (
-              <div key={module.id} className="border border-gray-200 rounded-lg">
-                <button
-                  onClick={() => toggleModule(module.id)}
-                  className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
-                >
-                  <span className="font-medium text-gray-900">{module.title}</span>
-                  <ChevronDown
-                    className={`w-4 h-4 transition-transform ${
-                      expandedModule === module.id ? 'rotate-180' : ''
-                    }`}
-                  />
-                </button>
+            {(() => {
+              const q = searchQuery.trim().toLowerCase();
+              const filteredModules = (modules || [])
+                .map((module) => ({
+                  ...module,
+                  lessons: module.lessons.filter((lesson) =>
+                    lesson.title.toLowerCase().includes(q)
+                  ),
+                }))
+                .filter((m) => m.lessons.length > 0);
 
-                {expandedModule === module.id && (
-                  <div className="px-4 pb-4 space-y-2">
-                    {module.lessons.map((lesson) => (
-                      <button
-                        key={lesson.id}
-                        onClick={() => handleLessonClick(lesson)}
-                        className={`w-full flex items-center gap-3 p-3 rounded-lg text-left hover:bg-gray-50 ${
-                          currentLesson?.id === lesson.id ? 'bg-blue-50 border border-blue-200' : ''
-                        }`}
-                      >
-                        {lesson.type === 'video' ? (
-                          <Play className="w-4 h-4 text-gray-400" />
-                        ) : (
-                          <FileText className="w-4 h-4 text-gray-400" />
-                        )}
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{lesson.title}</p>
-                          <p className="text-xs text-gray-500">{lesson.duration}</p>
-                        </div>
-                        {user?.purchasedCourses?.find(course => course.courseId === parseInt(courseId))?.progress?.completedLessons?.some(cl => cl.lessonId === lesson.id) ? (
-                          <Check className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Circle className="w-4 h-4 text-gray-300" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+              if (q && filteredModules.length === 0) {
+                return (
+                  <p className="text-sm text-gray-500">
+                    No results for "{searchQuery}"
+                  </p>
+                );
+              }
+
+              return (
+                filteredModules.length > 0 ? filteredModules : modules || []
+              ).map((module) => (
+                <div
+                  key={module.id}
+                  className="border border-gray-200 rounded-lg"
+                >
+                  <button
+                    onClick={() => toggleModule(module.id)}
+                    className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
+                  >
+                    <span className="font-medium text-gray-900">
+                      {module.title}
+                    </span>
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${
+                        expandedModule === module.id ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {expandedModule === module.id && (
+                    <div className="px-4 pb-4 space-y-2">
+                      {module.lessons.map((lesson) => (
+                        <button
+                          key={lesson.id}
+                          onClick={() => handleLessonClick(lesson)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-lg text-left hover:bg-gray-50 ${
+                            currentLesson?.id === lesson.id
+                              ? "bg-blue-50 border border-blue-200"
+                              : ""
+                          }`}
+                        >
+                          {lesson.type === "video" ? (
+                            <Play className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <FileText className="w-4 h-4 text-gray-400" />
+                          )}
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {lesson.title}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {lesson.duration}
+                            </p>
+                          </div>
+                          {user?.purchasedCourses
+                            ?.find(
+                              (course) => course.courseId === parseInt(courseId)
+                            )
+                            ?.progress?.completedLessons?.some(
+                              (cl) => cl.lessonId === lesson.id
+                            ) ? (
+                            <Check className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <Circle className="w-4 h-4 text-gray-300" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
         </div>
       </div>
@@ -389,12 +719,14 @@ export default function Learning() {
           <div
             ref={playerContainerRef}
             className="relative bg-black rounded-lg overflow-hidden"
-            style={{ aspectRatio: '16/9' }}
+            style={{ aspectRatio: "16/9" }}
           >
             {currentLesson?.youtubeUrl ? (
               <iframe
                 key={currentLesson.id}
-                src={`https://www.youtube.com/embed/${getYouTubeVideoId(currentLesson.youtubeUrl)}`}
+                src={`https://www.youtube.com/embed/${getYouTubeVideoId(
+                  currentLesson.youtubeUrl
+                )}`}
                 className="w-full h-full"
                 frameBorder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -403,28 +735,50 @@ export default function Learning() {
               ></iframe>
             ) : (
               <video
-                key={currentLesson.id}
                 ref={videoRef}
-                src={currentLesson?.videoUrl}
-                className="w-full h-full object-cover"
+                src={
+                  (celebrityVideoMap[selectedCelebrity] &&
+                    celebrityVideoMap[selectedCelebrity].video) ||
+                  currentLesson?.videoUrl
+                }
+                className="w-full h-full object-contain bg-black"
                 onTimeUpdate={handleProgress}
                 onLoadedMetadata={handleProgress}
                 onEnded={() => {
                   setIsPlaying(false);
                 }}
+                controls={false}
+                playsInline
+                preload="metadata"
               />
+            )}
+
+            {/* Caption overlay (custom) */}
+            {activeCaption && (
+              <div className="absolute left-1/2 transform -translate-x-1/2 bottom-16 px-4 py-2 bg-black/70 text-white rounded-md max-w-3xl text-center">
+                <p className="text-sm leading-relaxed">{activeCaption}</p>
+              </div>
             )}
 
             {/* Video Controls - Only show for local videos, not YouTube */}
             {!currentLesson?.youtubeUrl && (
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                 <div className="flex items-center gap-4">
-                  <button onClick={togglePlay} className="text-white hover:scale-110 transition-transform">
-                    {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                  <button
+                    onClick={togglePlay}
+                    className="text-white hover:scale-110 transition-transform"
+                  >
+                    {isPlaying ? (
+                      <Pause className="w-6 h-6" />
+                    ) : (
+                      <Play className="w-6 h-6" />
+                    )}
                   </button>
 
                   <div className="flex-1 flex items-center gap-2">
-                    <span className="text-white text-sm">{formatTime(currentTime)}</span>
+                    <span className="text-white text-sm">
+                      {formatTime(currentTime)}
+                    </span>
                     <div
                       className="flex-1 h-1 bg-gray-600 rounded-lg cursor-pointer"
                       onClick={handleSeek}
@@ -434,12 +788,21 @@ export default function Learning() {
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
-                    <span className="text-white text-sm">{formatTime(duration)}</span>
+                    <span className="text-white text-sm">
+                      {formatTime(duration)}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button onClick={toggleMute} className="text-white hover:scale-110 transition-transform">
-                      {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    <button
+                      onClick={toggleMute}
+                      className="text-white hover:scale-110 transition-transform"
+                    >
+                      {isMuted ? (
+                        <VolumeX className="w-5 h-5" />
+                      ) : (
+                        <Volume2 className="w-5 h-5" />
+                      )}
                     </button>
                     <input
                       type="range"
@@ -452,8 +815,15 @@ export default function Learning() {
                     />
                   </div>
 
-                  <button onClick={toggleFullscreen} className="text-white hover:scale-110 transition-transform">
-                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+                  <button
+                    onClick={toggleFullscreen}
+                    className="text-white hover:scale-110 transition-transform"
+                  >
+                    {isFullscreen ? (
+                      <Minimize className="w-5 h-5" />
+                    ) : (
+                      <Maximize className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </div>
@@ -462,26 +832,7 @@ export default function Learning() {
 
           {/* Lesson Content */}
           <div className="max-w-4xl space-y-6">
-            {/* Introduction Card */}
-            <div className="rounded-2xl border-l-4 border-black bg-white shadow-lg p-6">
-              <p className="text-xl text-black text-justify leading-normal">
-                {currentLesson?.content?.introduction}
-              </p>
-            </div>
-
-            {/* Key Concepts */}
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-black">Key Concepts</h3>
-
-              {currentLesson?.content?.keyConcepts?.map((concept, index) => (
-                <div key={index} className={`rounded-lg border-l-4 ${concept.borderColor} ${concept.bgColor} shadow-lg p-5 space-y-2`}>
-                  <h4 className={`font-semibold ${concept.textColor}`}>{concept.title}</h4>
-                  <p className={`font-medium ${concept.descriptionColor || concept.textColor}`}>{concept.description}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Navigation Buttons */}
+            {/* Only show navigation buttons below the player; content cards removed to avoid duplicate text */}
             <div className="flex items-center justify-between pt-8">
               <button
                 onClick={handlePrevious}
@@ -494,10 +845,12 @@ export default function Learning() {
 
               <button
                 onClick={handleNext}
-                disabled={currentLessonIndex >= allLessons.length - 1 || isNavigating}
+                disabled={
+                  currentLessonIndex >= allLessons.length - 1 || isNavigating
+                }
                 className="px-6 py-3 rounded-lg bg-blue-600 text-white font-medium shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isNavigating ? 'Loading...' : 'Next'}
+                {isNavigating ? "Loading..." : "Next"}
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>

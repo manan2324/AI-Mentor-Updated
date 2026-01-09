@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import Header from '../components/Header'
-import Sidebar from '../components/Sidebar'
-import { useAuth } from '../context/AuthContext'
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
+import { useAuth } from "../context/AuthContext";
 import {
   Search,
   Bell,
@@ -20,32 +20,32 @@ import {
   CheckCircle,
   Bookmark,
   Clock,
-  Star
-} from 'lucide-react'
+  Star,
+} from "lucide-react";
 
 const Dashboard = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [coursesData, setCoursesData] = useState({
     statsCards: [],
-    allCourses: []
-  })
-  const [loading, setLoading] = useState(true)
-  const { user, fetchUserProfile } = useAuth()
+    allCourses: [],
+  });
+  const [loading, setLoading] = useState(true);
+  const { user, fetchUserProfile } = useAuth();
 
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         const headers = {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         };
 
         const [coursesRes, statsRes] = await Promise.all([
-          fetch('http://localhost:5000/api/courses', { headers }),
-          fetch('http://localhost:5000/api/courses/stats/cards', { headers })
+          fetch("/api/courses", { headers }),
+          fetch("/api/courses/stats/cards", { headers }),
         ]);
 
         if (!coursesRes.ok) {
@@ -58,14 +58,14 @@ const Dashboard = () => {
         const allCourses = await coursesRes.json();
         const { statsCards } = await statsRes.json();
 
-        console.log('Fetched allCourses:', allCourses);
-        console.log('Fetched statsCards:', statsCards);
+        console.log("Fetched allCourses:", allCourses);
+        console.log("Fetched statsCards:", statsCards);
 
         setCoursesData({ allCourses, statsCards });
         await fetchUserProfile(); // Ensure user data is up to date
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        console.log('Error details:', error);
+        console.error("Error fetching dashboard data:", error);
+        console.log("Error details:", error);
       } finally {
         setLoading(false);
       }
@@ -76,10 +76,14 @@ const Dashboard = () => {
 
   // Calculate dynamic stats based on user's actual progress
   const calculateStats = () => {
-    console.log('Calculating stats with user:', user);
-    console.log('coursesData:', coursesData);
+    console.log("Calculating stats with user:", user);
+    console.log("coursesData:", coursesData);
 
-    if (!user?.purchasedCourses || !coursesData.statsCards || coursesData.statsCards.length < 4) {
+    if (
+      !user?.purchasedCourses ||
+      !coursesData.statsCards ||
+      coursesData.statsCards.length < 4
+    ) {
       return [
         {
           icon: <Play className="w-5 h-5 text-blue-600" />,
@@ -87,7 +91,7 @@ const Dashboard = () => {
           label: "Ongoing Courses",
           change: "+0%",
           bgColor: "bg-blue-50",
-          iconBg: "bg-blue-100"
+          iconBg: "bg-blue-100",
         },
         {
           icon: <CheckCircle className="w-5 h-5 text-green-600" />,
@@ -95,7 +99,7 @@ const Dashboard = () => {
           label: "Completed",
           change: "+0",
           bgColor: "bg-green-50",
-          iconBg: "bg-green-100"
+          iconBg: "bg-green-100",
         },
         {
           icon: <Bookmark className="w-5 h-5 text-purple-600" />,
@@ -103,7 +107,7 @@ const Dashboard = () => {
           label: "Certificates",
           change: "+0",
           bgColor: "bg-purple-50",
-          iconBg: "bg-purple-100"
+          iconBg: "bg-purple-100",
         },
         {
           icon: <Clock className="w-5 h-5 text-orange-600" />,
@@ -111,8 +115,8 @@ const Dashboard = () => {
           label: "Hours Spent",
           change: "+0h",
           bgColor: "bg-orange-50",
-          iconBg: "bg-orange-100"
-        }
+          iconBg: "bg-orange-100",
+        },
       ];
     }
 
@@ -121,12 +125,17 @@ const Dashboard = () => {
     const certificates = user.analytics?.certificates || 0;
     const totalHours = user.analytics?.totalHours || 0;
 
-    user.purchasedCourses.forEach(purchasedCourse => {
+    user.purchasedCourses.forEach((purchasedCourse) => {
       // Find the course in allCourses to get lesson count
-      const courseInfo = coursesData.allCourses.find(c => c.id === purchasedCourse.courseId);
+      const courseInfo = coursesData.allCourses.find(
+        (c) => c.id === purchasedCourse.courseId
+      );
       if (courseInfo) {
-        const totalLessons = courseInfo.lessons ? parseInt(courseInfo.lessons.split(' ')[0]) : 0;
-        const completedLessons = purchasedCourse.progress?.completedLessons?.length || 0;
+        const totalLessons = courseInfo.lessons
+          ? parseInt(courseInfo.lessons.split(" ")[0])
+          : 0;
+        const completedLessons =
+          purchasedCourse.progress?.completedLessons?.length || 0;
 
         if (completedLessons === totalLessons && totalLessons > 0) {
           completedCourses++;
@@ -139,79 +148,114 @@ const Dashboard = () => {
     const result = [
       {
         ...coursesData.statsCards[0],
-        value: coursesInProgress.toString()
+        value: coursesInProgress.toString(),
       },
       {
         ...coursesData.statsCards[1],
-        value: completedCourses.toString()
+        value: completedCourses.toString(),
       },
       {
         ...coursesData.statsCards[2],
-        value: certificates.toString()
+        value: certificates.toString(),
       },
       {
         ...coursesData.statsCards[3],
-        value: `${totalHours}h`
-      }
+        value: `${totalHours}h`,
+      },
     ];
 
-    console.log('Calculated stats result:', result);
+    console.log("Calculated stats result:", result);
     return result;
   };
 
   const dynamicStatsCards = calculateStats();
 
   // Create dynamic myCourses from user data
-  console.log('Creating myCourses with user:', user);
-  console.log('coursesData.allCourses:', coursesData.allCourses);
+  console.log("Creating myCourses with user:", user);
+  console.log("coursesData.allCourses:", coursesData.allCourses);
 
   const myCourses = coursesData.allCourses
-    .filter(course => user?.purchasedCourses?.some(purchased => purchased.courseId === course.id))
-    .map(course => {
-      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
-      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
-      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
+    .filter((course) =>
+      user?.purchasedCourses?.some(
+        (purchased) => purchased.courseId === course.id
+      )
+    )
+    .map((course) => {
+      const purchasedCourse = user?.purchasedCourses?.find(
+        (p) => p.courseId === course.id
+      );
+      const totalLessons = course.lessons
+        ? parseInt(course.lessons.split(" ")[0])
+        : 0;
+      const completedLessons =
+        purchasedCourse?.progress?.completedLessons?.length || 0;
 
       const courseData = {
         id: course.id,
         title: course.title,
         subtitle: course.category,
-        progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        progress:
+          totalLessons > 0
+            ? Math.round((completedLessons / totalLessons) * 100)
+            : 0,
         lessons: `${completedLessons}/${totalLessons}`,
         level: course.level,
-        levelColor: course.level === 'Beginner' ? 'bg-blue-100 text-blue-800' :
-                   course.level === 'Intermediate' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800',
+        levelColor:
+          course.level === "Beginner"
+            ? "bg-blue-100 text-blue-800"
+            : course.level === "Intermediate"
+            ? "bg-green-100 text-green-800"
+            : "bg-yellow-100 text-yellow-800",
         image: course.image,
-        progressColor: 'bg-indigo-600'
+        progressColor: "bg-indigo-600",
       };
 
-      console.log('Mapped course:', courseData);
+      console.log("Mapped course:", courseData);
       return courseData;
-    })
+    });
 
-  console.log('Final myCourses:', myCourses);
+  console.log("Final myCourses:", myCourses);
 
   // Create dynamic continueLearning from user data
-  console.log('Creating continueLearning');
+  console.log("Creating continueLearning");
 
   const continueLearning = coursesData.allCourses
-    .filter(course => user?.purchasedCourses?.some(purchased => purchased.courseId === course.id))
-    .filter(course => {
-      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
-      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
-      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
+    .filter((course) =>
+      user?.purchasedCourses?.some(
+        (purchased) => purchased.courseId === course.id
+      )
+    )
+    .filter((course) => {
+      const purchasedCourse = user?.purchasedCourses?.find(
+        (p) => p.courseId === course.id
+      );
+      const totalLessons = course.lessons
+        ? parseInt(course.lessons.split(" ")[0])
+        : 0;
+      const completedLessons =
+        purchasedCourse?.progress?.completedLessons?.length || 0;
       return completedLessons > 0 && completedLessons < totalLessons;
     })
     .slice(0, 3) // Limit to 3 courses
-    .map(course => {
-      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
-      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
-      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
-      const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+    .map((course) => {
+      const purchasedCourse = user?.purchasedCourses?.find(
+        (p) => p.courseId === course.id
+      );
+      const totalLessons = course.lessons
+        ? parseInt(course.lessons.split(" ")[0])
+        : 0;
+      const completedLessons =
+        purchasedCourse?.progress?.completedLessons?.length || 0;
+      const progress =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
 
       // Get current lesson info
       const currentLesson = purchasedCourse?.progress?.currentLesson;
-      const lessonTitle = currentLesson ? `Lesson ${currentLesson.lessonId}: ${currentLesson.moduleTitle}` : `Continue from Lesson ${completedLessons + 1}`;
+      const lessonTitle = currentLesson
+        ? `Lesson ${currentLesson.lessonId}: ${currentLesson.moduleTitle}`
+        : `Continue from Lesson ${completedLessons + 1}`;
 
       const continueData = {
         id: course.id,
@@ -219,29 +263,27 @@ const Dashboard = () => {
         lesson: lessonTitle,
         progress: progress,
         image: course.image,
-        progressColor: progress > 75 ? 'bg-cyan-600' : 'bg-orange-400'
+        progressColor: progress > 75 ? "bg-cyan-600" : "bg-orange-400",
       };
 
-      console.log('Mapped continueLearning item:', continueData);
+      console.log("Mapped continueLearning item:", continueData);
       return continueData;
-    })
+    });
 
-  console.log('Final continueLearning:', continueLearning);
-
-
+  console.log("Final continueLearning:", continueLearning);
 
   const schedule = [
     {
       title: "Machine Learning",
       time: "10:00 AM - 11:30 AM",
-      color: "bg-blue-50 border-l-blue-500"
+      color: "bg-blue-50 border-l-blue-500",
     },
     {
-      title: "React Development", 
+      title: "React Development",
       time: "2:00 PM - 3:30 PM",
-      color: "bg-green-50 border-l-green-500"
-    }
-  ]
+      color: "bg-green-50 border-l-green-500",
+    },
+  ];
 
   if (loading) {
     return (
@@ -254,9 +296,11 @@ const Dashboard = () => {
           setSidebarCollapsed={setSidebarCollapsed}
           activePage="dashboard"
         />
-        <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-        }`}>
+        <div
+          className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+            sidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+          }`}
+        >
           <main className="flex-1 mt-10 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
             <div className="flex items-center justify-center h-64">
               <div className="text-gray-500">Loading dashboard...</div>
@@ -264,13 +308,12 @@ const Dashboard = () => {
           </main>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-
 
       <Sidebar
         sidebarOpen={sidebarOpen}
@@ -281,11 +324,12 @@ const Dashboard = () => {
       />
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-      }`}>
+      <div
+        className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+        }`}
+      >
         {/* Header */}
-
 
         {/* Dashboard Content */}
         <main className="flex-1 mt-10 overflow-x-hidden overflow-y-auto bg-gray-50 p-6">
@@ -293,14 +337,21 @@ const Dashboard = () => {
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {dynamicStatsCards.map((card, index) => (
-                <div key={index} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                <div
+                  key={index}
+                  className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+                >
                   <div className="flex items-center justify-between mb-4">
                     <div className={`p-3 rounded-xl ${card.iconBg}`}>
                       {card.icon}
                     </div>
-                    <span className="text-sm font-medium text-green-600">{card.change}</span>
+                    <span className="text-sm font-medium text-green-600">
+                      {card.change}
+                    </span>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 mb-1">{card.value}</div>
+                  <div className="text-2xl font-bold text-gray-900 mb-1">
+                    {card.value}
+                  </div>
                   <div className="text-sm text-gray-600">{card.label}</div>
                 </div>
               ))}
@@ -309,7 +360,9 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               {/* Popular Courses */}
               <div className="xl:col-span-2">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Popular Courses</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">
+                  Popular Courses
+                </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {coursesData.allCourses.slice(0, 3).map((course, index) => (
                     <Link to={`/course-preview/${course.id}`} key={index}>
@@ -325,18 +378,30 @@ const Dashboard = () => {
                           </div>
                           <div className="absolute bottom-3 right-3 bg-white rounded-full px-2 py-1 flex items-center space-x-1">
                             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                            <span className="text-xs font-medium">{course.rating}</span>
+                            <span className="text-xs font-medium">
+                              {course.rating}
+                            </span>
                           </div>
                         </div>
                         <div className="p-4">
-                          <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-3 ${course.categoryColor}`}>
+                          <div
+                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium mb-3 ${course.categoryColor}`}
+                          >
                             {course.category}
                           </div>
-                          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
-                          <p className="text-sm text-gray-600 mb-4">{course.lessons}</p>
+                          <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                            {course.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-4">
+                            {course.lessons}
+                          </p>
                           <div className="flex items-center justify-between">
-                            <span className="text-lg font-bold text-gray-900">{course.price}</span>
-                            <span className="text-xs text-gray-500">{course.students}</span>
+                            <span className="text-lg font-bold text-gray-900">
+                              {course.price}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {course.students}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -347,39 +412,41 @@ const Dashboard = () => {
 
               {/* Course Topics Chart */}
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Course Topics</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">
+                  Course Topics
+                </h2>
                 <div className="relative flex items-center justify-center mb-6">
                   <div className="w-48 h-48 relative">
                     <svg className="w-full h-full" viewBox="0 0 200 200">
                       {/* Pie chart segments */}
-                      <circle 
-                        cx="100" 
-                        cy="100" 
-                        r="80" 
-                        fill="none" 
-                        stroke="#FF885A" 
+                      <circle
+                        cx="100"
+                        cy="100"
+                        r="80"
+                        fill="none"
+                        stroke="#FF885A"
                         strokeWidth="40"
                         strokeDasharray="351.86 351.86"
                         strokeDashoffset="87.97"
                         transform="rotate(-90 100 100)"
                       />
-                      <circle 
-                        cx="100" 
-                        cy="100" 
-                        r="80" 
-                        fill="none" 
-                        stroke="#FFD0BD" 
+                      <circle
+                        cx="100"
+                        cy="100"
+                        r="80"
+                        fill="none"
+                        stroke="#FFD0BD"
                         strokeWidth="40"
                         strokeDasharray="70.37 281.49"
                         strokeDashoffset="263.89"
                         transform="rotate(-90 100 100)"
                       />
-                      <circle 
-                        cx="100" 
-                        cy="100" 
-                        r="80" 
-                        fill="none" 
-                        stroke="#FFA988" 
+                      <circle
+                        cx="100"
+                        cy="100"
+                        r="80"
+                        fill="none"
+                        stroke="#FFA988"
                         strokeWidth="40"
                         strokeDasharray="140.74 211.12"
                         strokeDashoffset="193.52"
@@ -412,31 +479,48 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
               {/* My Courses Table */}
               <div className="xl:col-span-2">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">My Courses</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">
+                  My Courses
+                </h2>
                 <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">Course</th>
-                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">Progress</th>
-                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">Lessons</th>
-                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">Level</th>
+                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">
+                            Course
+                          </th>
+                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">
+                            Progress
+                          </th>
+                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">
+                            Lessons
+                          </th>
+                          <th className="px-4 py-4 text-left text-sm font-medium text-gray-600">
+                            Level
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200">
                         {myCourses.map((course, index) => (
                           <tr key={index} className="hover:bg-gray-50">
                             <td className="px-4 py-4">
-                              <Link to={`/course-preview/${course.id}`} className="flex items-center">
+                              <Link
+                                to={`/course-preview/${course.id}`}
+                                className="flex items-center"
+                              >
                                 <img
                                   src={course.image}
                                   alt={course.title}
                                   className="w-12 h-12 rounded-lg mr-4"
                                 />
                                 <div>
-                                  <div className="font-medium text-gray-900 hover:text-indigo-600">{course.title}</div>
-                                  <div className="text-sm text-gray-600">{course.subtitle}</div>
+                                  <div className="font-medium text-gray-900 hover:text-indigo-600">
+                                    {course.title}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    {course.subtitle}
+                                  </div>
                                 </div>
                               </Link>
                             </td>
@@ -447,11 +531,17 @@ const Dashboard = () => {
                                   style={{ width: `${course.progress}%` }}
                                 ></div>
                               </div>
-                              <div className="text-sm text-gray-600">{course.progress}%</div>
+                              <div className="text-sm text-gray-600">
+                                {course.progress}%
+                              </div>
                             </td>
-                            <td className="px-4 py-4 text-gray-600">{course.lessons}</td>
+                            <td className="px-4 py-4 text-gray-600">
+                              {course.lessons}
+                            </td>
                             <td className="px-4 py-4">
-                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${course.levelColor}`}>
+                              <span
+                                className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${course.levelColor}`}
+                              >
                                 {course.level}
                               </span>
                             </td>
@@ -465,29 +555,44 @@ const Dashboard = () => {
 
               {/* Continue Learning */}
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-6">Continue Learning</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-6">
+                  Continue Learning
+                </h2>
                 <div className="space-y-4">
                   {continueLearning.map((item, index) => (
-                    <div key={index} className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                    <div
+                      key={index}
+                      className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                    >
                       <div className="flex items-center">
-                        <Link to={`/course-preview/${item.id}`} className="flex items-center flex-1">
-                          <img 
-                            src={item.image} 
+                        <Link
+                          to={`/course-preview/${item.id}`}
+                          className="flex items-center flex-1"
+                        >
+                          <img
+                            src={item.image}
                             alt={item.title}
                             className="w-12 h-12 rounded-lg mr-4"
                           />
                           <div className="flex-1">
-                            <h3 className="font-medium text-gray-900 mb-1 hover:text-teal-600">{item.title}</h3>
-                            <p className="text-sm text-gray-600 mb-2">{item.lesson}</p>
+                            <h3 className="font-medium text-gray-900 mb-1 hover:text-teal-600">
+                              {item.title}
+                            </h3>
+                            <p className="text-sm text-gray-600 mb-2">
+                              {item.lesson}
+                            </p>
                             <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                              <div 
+                              <div
                                 className={`h-2 rounded-full ${item.progressColor}`}
                                 style={{ width: `${item.progress}%` }}
                               ></div>
                             </div>
                           </div>
                         </Link>
-                        <Link to={`/learning/${item.id}`} className="ml-4 px-4 py-2 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600">
+                        <Link
+                          to={`/learning/${item.id}`}
+                          className="ml-4 px-4 py-2 bg-teal-500 text-white text-sm font-medium rounded-lg hover:bg-teal-600"
+                        >
                           Continue
                         </Link>
                       </div>
@@ -501,7 +606,9 @@ const Dashboard = () => {
               {/* Calendar */}
               <div className="xl:col-span-3 bg-white rounded-xl p-6 border border-gray-200">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Class Calendar</h2>
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Class Calendar
+                  </h2>
                   <div className="flex items-center space-x-4">
                     <button className="p-2 bg-gray-100 rounded-lg">
                       <ChevronLeftIcon className="w-4 h-4" />
@@ -512,23 +619,28 @@ const Dashboard = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-7 gap-px mb-4">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                    <div key={day} className="p-3 text-center text-sm font-medium text-gray-600">
-                      {day}
-                    </div>
-                  ))}
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map(
+                    (day) => (
+                      <div
+                        key={day}
+                        className="p-3 text-center text-sm font-medium text-gray-600"
+                      >
+                        {day}
+                      </div>
+                    )
+                  )}
                 </div>
-                
+
                 <div className="grid grid-cols-7 gap-px">
                   {Array.from({ length: 31 }, (_, i) => (
-                    <div 
-                      key={i + 1} 
+                    <div
+                      key={i + 1}
                       className={`p-3 text-center text-sm ${
-                        [3, 5, 9, 12, 16, 19, 23].includes(i + 1) 
-                          ? 'bg-blue-50 text-blue-900 rounded-lg' 
-                          : 'text-gray-900 hover:bg-gray-50 rounded-lg'
+                        [3, 5, 9, 12, 16, 19, 23].includes(i + 1)
+                          ? "bg-blue-50 text-blue-900 rounded-lg"
+                          : "text-gray-900 hover:bg-gray-50 rounded-lg"
                       }`}
                     >
                       {i + 1}
@@ -554,11 +666,18 @@ const Dashboard = () => {
 
               {/* Today's Schedule */}
               <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Schedule</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Today's Schedule
+                </h3>
                 <div className="space-y-3">
                   {schedule.map((item, index) => (
-                    <div key={index} className={`p-3 rounded-lg border-l-4 ${item.color}`}>
-                      <h4 className="font-medium text-gray-900 mb-1">{item.title}</h4>
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg border-l-4 ${item.color}`}
+                    >
+                      <h4 className="font-medium text-gray-900 mb-1">
+                        {item.title}
+                      </h4>
                       <p className="text-sm text-gray-600">{item.time}</p>
                     </div>
                   ))}
@@ -569,7 +688,7 @@ const Dashboard = () => {
         </main>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Dashboard
+export default Dashboard;

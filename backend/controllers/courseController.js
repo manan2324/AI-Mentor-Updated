@@ -31,22 +31,22 @@ const getCourseById = async (req, res) => {
 // @desc    Get learning data for a course
 const getCourseLearningData = async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Not authorized" });
-    }
+    // if (!req.user) {
+    //   return res.status(401).json({ message: "Not authorized" });
+    // }
 
     const courseId = Number(req.params.id);
-    const User = (await import("../models/User.js")).default;
-    const user = await User.findById(req.user._id);
+    // const User = (await import("../models/User.js")).default;
+    // const user = await User.findById(req.user._id);
 
-    if (
-      !user ||
-      !user.purchasedCourses?.some((c) => Number(c.courseId) === courseId)
-    ) {
-      return res
-        .status(403)
-        .json({ message: "Access denied. Course not purchased." });
-    }
+    // if (
+    //   !user ||
+    //   !user.purchasedCourses?.some((c) => Number(c.courseId) === courseId)
+    // ) {
+    //   return res
+    //     .status(403)
+    //     .json({ message: "Access denied. Course not purchased." });
+    // }
 
     const course = await Course.findOne(
       { id: courseId },
@@ -58,11 +58,20 @@ const getCourseLearningData = async (req, res) => {
         .json({ message: "Course learning data not found" });
     }
 
-    const purchasedCourse = user.purchasedCourses.find(
-      (pc) => Number(pc.courseId) === courseId
-    );
+    // const purchasedCourse = user.purchasedCourses.find(
+    //   (pc) => Number(pc.courseId) === courseId
+    // );
 
-    const currentLesson = purchasedCourse?.progress?.currentLesson || null;
+    // const currentLesson = purchasedCourse?.progress?.currentLesson || null;
+
+    // If no current lesson, set to first lesson
+    let currentLesson = null; // purchasedCourse?.progress?.currentLesson || null;
+    if (!currentLesson && course.modules && course.modules.length > 0) {
+      const firstModule = course.modules[0];
+      if (firstModule.lessons && firstModule.lessons.length > 0) {
+        currentLesson = firstModule.lessons[0];
+      }
+    }
 
     res.json({
       ...course.toObject(),

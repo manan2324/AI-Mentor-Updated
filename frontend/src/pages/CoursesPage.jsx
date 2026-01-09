@@ -1,115 +1,138 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import Header from '../components/Header'
-import Sidebar from '../components/Sidebar'
-import { Star, Bookmark } from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
+import React, { useState } from "react";
+import Header from "../components/Header";
+import Sidebar from "../components/Sidebar";
+import { Play, CheckCircle, Clock, Star, Bookmark } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const CoursesPage = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [activeTab, setActiveTab] = useState('my-courses')
-  const [coursesData, setCoursesData] = useState({
-    statsCards: [],
-    allCourses: [],
-    learningData: {}
-  })
-  const [loading, setLoading] = useState(true)
-  const { user } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState("my-courses");
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const fetchAllData = async () => {
-      setLoading(true);
-      try {
-        const [coursesRes, statsRes] = await Promise.all([
-          fetch('/api/courses'),
-          fetch('/api/courses/stats/cards')
-        ]);
+  const Navigate = useNavigate();
 
-        const allCourses = await coursesRes.json();
-        const { statsCards } = await statsRes.json();
-
-        setCoursesData({ allCourses, statsCards, learningData: {} });
-      } catch (error) {
-        console.error('Error fetching page data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllData();
-  }, [])
-
-  if (loading) {
-    return <div>Loading...</div>
-  }
-
-  const { statsCards, allCourses: courseCards } = coursesData
-
-  // Filter courses based on user's purchased courses and add progress info
-  const myCourses = courseCards
-    .filter(course => user?.purchasedCourses?.some(purchased => purchased.courseId === course.id))
-    .map(course => {
-      const purchasedCourse = user?.purchasedCourses?.find(p => p.courseId === course.id);
-      const totalLessons = course.lessons ? parseInt(course.lessons.split(' ')[0]) : 0;
-      const completedLessons = purchasedCourse?.progress?.completedLessons?.length || 0;
-
-      return {
-        ...course,
-        lessons: `${completedLessons} of ${totalLessons} lessons`,
-        progress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
-        status: completedLessons === totalLessons && totalLessons > 0 ? 'Completed' :
-                completedLessons > 0 ? 'In Progress' : 'Not Started'
-      };
-    })
-
-  // Calculate dynamic stats based on user's actual progress
-  const calculateStats = () => {
-    if (!user?.purchasedCourses || !statsCards || statsCards.length < 3) return [];
-
-    let coursesInProgress = 0;
-    let completedCourses = 0;
-    let totalLearningHours = 0;
-
-    user.purchasedCourses.forEach(purchasedCourse => {
-      // Find the course in allCourses to get lesson count
-      const courseInfo = courseCards.find(c => c.id === purchasedCourse.courseId);
-      if (courseInfo) {
-        const totalLessons = courseInfo.lessons ? parseInt(courseInfo.lessons.split(' ')[0]) : 0;
-        const completedLessons = purchasedCourse.progress?.completedLessons?.length || 0;
-
-        if (completedLessons === totalLessons && totalLessons > 0) {
-          completedCourses++;
-        } else if (completedLessons > 0) {
-          coursesInProgress++;
-        }
-
-        // Calculate learning hours (assuming each lesson is ~10 minutes)
-        totalLearningHours += completedLessons * 10;
-      }
-    });
-
-    return [
-      {
-        ...statsCards[0],
-        value: coursesInProgress.toString()
-      },
-      {
-        ...statsCards[1],
-        value: completedCourses.toString()
-      },
-      {
-        ...statsCards[2],
-        value: `${Math.floor(totalLearningHours / 60)}h`
-      }
-    ];
+  const CoursesPage = () => {
+    const Navigate = useNavigate();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
   };
 
-  const dynamicStatsCards = calculateStats();
-  const coursesToDisplay = activeTab === 'my-courses' ? myCourses : courseCards
+  /* ---------------- MY COURSES DATA ---------------- */
+  const mockCourses = [
+    {
+      id: 1,
+      title: "React Fundamentals",
+      status: "In Progress",
+      progress: 75,
+      lessons: "18 of 24 lessons",
+      level: "Intermediate",
+      image:
+        "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=60",
+      statusColor: "bg-blue-500",
+      levelColor: "bg-purple-50 text-purple-600",
+      progressColor: "bg-blue-500",
+      buttonClass: "bg-[#2DD4BF] hover:bg-[#14B8A6] text-white",
+    },
+    {
+      id: 2,
+      title: "Python For AI",
+      status: "In Progress",
+      progress: 50,
+      lessons: "9 of 20 lessons",
+      level: "Advanced",
+      image:
+        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+      statusColor: "bg-blue-500",
+      levelColor: "bg-orange-50 text-orange-600",
+      progressColor: "bg-blue-500",
+      buttonClass: "bg-[#2DD4BF] hover:bg-[#14B8A6] text-white",
+    },
+    {
+      id: 3,
+      title: "AI Ethics & Bias",
+      status: "Completed",
+      progress: 100,
+      lessons: "6 of 6 lessons",
+      level: "Beginner",
+      image:
+        "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&auto=format&fit=crop&q=60",
+      statusColor: "bg-green-500",
+      levelColor: "bg-green-50 text-green-600",
+      progressColor: "bg-green-500",
+      buttonClass: "bg-[#F1F5F9] text-[#94A3B8] cursor-not-allowed",
+    },
+  ];
+
+  /* ---------------- EXPLORE COURSES DATA ---------------- */
+  const exploreCourses = [
+    {
+      id: 1,
+      title: "React Fundamentals",
+      category: "Development",
+      lessons: 24,
+      level: "Intermediate",
+      students: "2.5k",
+      price: 1999,
+      rating: 4.8,
+      image:
+        "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=800&auto=format&fit=crop&q=60",
+    },
+    {
+      id: 2,
+      title: "Python For AI",
+      category: "AI & ML",
+      lessons: 20,
+      level: "Advanced",
+      students: "2.5k",
+      price: 1299,
+      rating: 4.9,
+      image:
+        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+    },
+    {
+      id: 3,
+      title: "AI Ethics & Bias",
+      category: "AI & ML",
+      lessons: 6,
+      level: "Beginner",
+      students: "2.5k",
+      price: 1499,
+      rating: 4.7,
+      image:
+        "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&auto=format&fit=crop&q=60",
+    },
+    {
+      id: 4,
+      title: "Full Stack Web Development",
+      category: "Development",
+      lessons: 36,
+      level: "Beginner",
+      students: "2.5k",
+      price: 1299,
+      rating: 4.9,
+      image:
+        "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&auto=format&fit=crop&q=60",
+    },
+  ];
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900 mb-4">
+            Please Login
+          </h1>
+          <p className="text-slate-500">
+            You need to be logged in to access the courses page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col">
       <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       <Sidebar
@@ -120,143 +143,167 @@ const CoursesPage = () => {
         activePage="courses"
       />
 
-      {/* Main Content */}
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-      }`}>
-        {/* Courses Content */}
-        <main className="flex-1 mt-16 overflow-x-hidden overflow-y-auto bg-gray-50 p-8">
-          <div className="max-w-6xl mx-auto space-y-8">
-            {/* Learning Hub Header */}
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-gray-900">Learning Hub</h1>
-              <p className="text-gray-600">Discover and continue your AI learning journey</p>
+      <div
+        className={`flex-1 transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+        }`}
+      >
+        <main className="mt-16 p-8">
+          <div className="max-w-7xl mx-auto space-y-10">
+            {/* Header */}
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">
+                Learning Hub
+              </h1>
+              <p className="text-slate-500 mt-1">
+                Discover and continue your AI learning journey
+              </p>
             </div>
 
-            {/* Tab Navigation */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-2 inline-flex">
+            {/* Tabs */}
+            <div className="bg-white rounded-xl p-2 inline-flex border border-slate-100 shadow-sm">
               <button
-                onClick={() => setActiveTab('my-courses')}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                  activeTab === 'my-courses'
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/30'
-                    : 'text-gray-600 hover:text-gray-900'
+                onClick={() => setActiveTab("my-courses")}
+                className={`px-6 py-2 rounded-lg font-semibold transition ${
+                  activeTab === "my-courses"
+                    ? "bg-[#2DD4BF] text-white shadow"
+                    : "text-slate-500"
                 }`}
               >
-                My Courses ({myCourses.length})
+                My Courses
               </button>
               <button
-                onClick={() => setActiveTab('explore')}
-                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                  activeTab === 'explore'
-                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg shadow-purple-500/30'
-                    : 'text-gray-600 hover:text-gray-900'
+                onClick={() => setActiveTab("explore")}
+                className={`px-6 py-2 rounded-lg font-semibold transition ${
+                  activeTab === "explore"
+                    ? "bg-[#2DD4BF] text-white shadow"
+                    : "text-slate-500"
                 }`}
               >
                 Explore Courses
               </button>
             </div>
 
-            {/* Stats Cards - Only show for My Courses */}
-            {activeTab === 'my-courses' && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {dynamicStatsCards.map((stat, index) => (
-                  <div key={index} className={`bg-white rounded-xl p-6 shadow-sm border border-gray-100 ${stat.bgColor}`}>
-                    <div className="flex items-center space-x-4">
-                      <div className={`p-3 rounded-lg ${stat.iconBg}`}>
-                        <img src={stat.icon} alt="" className="w-6 h-6" />
-                      </div>
+            {/* ---------------- MY COURSES ---------------- */}
+            {activeTab === "my-courses" && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {mockCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm"
+                  >
+                    <div className="relative h-40">
+                      <img
+                        src={course.image}
+                        className="w-full h-full object-cover"
+                        alt={course.title}
+                      />
+                      <span
+                        className={`absolute top-4 left-4 px-4 py-1.5 rounded-full text-xs font-semibold text-white ${course.statusColor}`}
+                      >
+                        {course.status}
+                      </span>
+                    </div>
+
+                    <div className="p-6 space-y-4">
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        {course.title}
+                      </h3>
+
                       <div>
-                        <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                        <p className="text-sm text-gray-600">{stat.label}</p>
+                        <div className="h-2 bg-slate-100 rounded-full">
+                          <div
+                            className={`h-2 rounded-full ${course.progressColor}`}
+                            style={{ width: `${course.progress}%` }}
+                          />
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {course.progress}% Complete
+                        </p>
                       </div>
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-slate-400">
+                          {course.lessons}
+                        </span>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${course.levelColor}`}
+                        >
+                          {course.level}
+                        </span>
+                      </div>
+
+                      <button
+                        disabled={course.status === "Completed"}
+                        onClick={() => Navigate(`/learning/${course.id}`)}
+                        className={`w-full py-3 rounded-xl font-semibold transition ${course.buttonClass}`}
+                      >
+                        {course.status === "Completed"
+                          ? "Review Course"
+                          : "Continue Learning"}
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Courses Grid */}
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                {activeTab === 'my-courses' ? 'Continue Learning' : 'Popular Courses'}
-              </h2>
-
-              {coursesToDisplay.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg">
-                    {activeTab === 'my-courses'
-                      ? 'You haven\'t purchased any courses yet. Explore courses to get started!'
-                      : 'No courses available at the moment.'
-                    }
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {coursesToDisplay.map((course) => (
-                    <Link
-                      key={course.id}
-                      to={activeTab === 'my-courses' ? `/learning/${course.id}` : `/course-preview/${course.id}`}
-                      className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
-                    >
-                      {/* Course Image */}
-                      <div className="relative">
-                        <img
-                          src={course.image || '/AI_Tutor_New_UI/Dashboard/logo.png'}
-                          alt={course.title}
-                          className="w-full h-40 object-cover"
-                        />
-                        {/* Progress Bar - Only for My Courses */}
-                        {course.progress !== undefined && (
-                          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-300">
-                            <div
-                              className="h-full bg-green-500 transition-all duration-300"
-                              style={{ width: `${course.progress}%` }}
-                            ></div>
-                          </div>
-                        )}
-                        {/* Rating Badge */}
-                        <div className="absolute bottom-3 right-3 bg-white rounded-full px-2 py-1 flex items-center space-x-1 shadow-sm">
-                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs font-medium text-gray-700">{course.rating}</span>
-                        </div>
-                        {/* Student count */}
-                        <div className="absolute top-3 right-3 text-xs text-gray-500">
-                          {course.students}
-                        </div>
+            {/* ---------------- EXPLORE COURSES ---------------- */}
+            {activeTab === "explore" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {exploreCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden"
+                  >
+                    <div className="relative h-40">
+                      <img
+                        src={course.image}
+                        className="w-full h-full object-cover"
+                        alt={course.title}
+                      />
+                      <div className="absolute bottom-3 right-3 bg-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 shadow">
+                        <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                        {course.rating}
                       </div>
+                    </div>
 
-                      {/* Course Details */}
-                      <div className="p-4 space-y-3">
-                        {/* Category Badge */}
-                        <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${course.categoryColor}`}>
+                    <div className="p-4 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs px-3 py-1 rounded-full bg-cyan-50 text-cyan-600 font-semibold">
                           {course.category}
-                        </div>
-
-                        {/* Course Title */}
-                        <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">{course.title}</h3>
-
-                        {/* Course Info */}
-                        <p className="text-sm text-gray-600">{course.lessons} • {course.level}</p>
-
-                        {/* Price and Bookmark */}
-                        <div className="flex items-center justify-between pt-2">
-                          <span className="text-lg font-bold text-gray-900">{course.price}</span>
-                          <div className={`p-2 rounded-full ${course.isBookmarked ? 'bg-teal-500' : 'bg-white border border-gray-200'}`}>
-                            <Bookmark className={`w-4 h-4 ${course.isBookmarked ? 'text-white fill-white' : 'text-teal-600'}`} />
-                          </div>
-                        </div>
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {course.students} students
+                        </span>
                       </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
+
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        {course.title}
+                      </h3>
+
+                      <p className="text-xs text-slate-400">
+                        {course.lessons} lessons • {course.level}
+                      </p>
+
+                      <div className="flex justify-between items-center pt-2">
+                        <span className="font-bold text-slate-900">
+                          ₹{course.price}
+                        </span>
+                        <button className="w-9 h-9 rounded-full border border-cyan-400 flex items-center justify-center text-cyan-500 hover:bg-cyan-50">
+                          <Bookmark className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </main>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default CoursesPage
+export default CoursesPage;

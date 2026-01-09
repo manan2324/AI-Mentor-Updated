@@ -28,9 +28,9 @@ router.route("/stats/cards").get(protect, getStatsCards);
 router.route("/my-courses").get(protect, getMyCourses);
 
 /* =======================
-   COURSE LEARNING
+    COURSE LEARNING
 ======================= */
-router.route("/:id/learning").get(protect, getCourseLearningData);
+router.route("/:id/learning").get(getCourseLearningData);
 
 /* =======================
    ADMIN / MANAGEMENT

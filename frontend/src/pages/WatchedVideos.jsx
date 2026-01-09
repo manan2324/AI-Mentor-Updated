@@ -1,23 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Bell, Clock, CheckCircle, TrendingUp, Flame, Play, MoreVertical, ChevronDown } from 'lucide-react';
-import Sidebar from '../components/Sidebar';
-import Header from '../components/Header';
-import API_BASE_URL from '../lib/api';
-
+import React, { useState, useEffect } from "react";
+import {
+  Search,
+  Bell,
+  Clock,
+  CheckCircle,
+  TrendingUp,
+  Flame,
+  Play,
+  MoreVertical,
+  ChevronDown,
+} from "lucide-react";
+import Sidebar from "../components/Sidebar";
+import Header from "../components/Header";
+import API_BASE_URL from "../lib/api";
 
 const WatchedVideos = () => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [courseFilter, setCourseFilter] = useState('All Courses');
-  const [statusFilter, setStatusFilter] = useState('All Status');
-  const [sortBy, setSortBy] = useState('Most Recent');
+  const [courseFilter, setCourseFilter] = useState("All Courses");
+  const [statusFilter, setStatusFilter] = useState("All Status");
+  const [sortBy, setSortBy] = useState("Most Recent");
   const [videoData, setVideoData] = useState([]);
   const [metrics, setMetrics] = useState({
-    totalHours: '0.0',
+    totalHours: "0.0",
     videosCompleted: 0,
-    avgSession: '0min',
-    learningStreak: '0 days'
+    avgSession: "0min",
+    learningStreak: "0 days",
   });
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,13 +34,16 @@ const WatchedVideos = () => {
   useEffect(() => {
     const fetchWatchedVideos = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await fetch(`${API_BASE_URL}/api/users/watched-videos`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        const token = localStorage.getItem("token");
+        const response = await fetch(
+          `${API_BASE_URL}/api/users/watched-videos`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
           }
-        });
+        );
         const data = await response.json();
 
         if (response.ok) {
@@ -39,10 +51,10 @@ const WatchedVideos = () => {
           setMetrics(data.metrics);
           setCourses(data.courses || []);
         } else {
-          console.error('Error fetching watched videos:', data.message);
+          console.error("Error fetching watched videos:", data.message);
         }
       } catch (error) {
-        console.error('Error fetching watched videos:', error);
+        console.error("Error fetching watched videos:", error);
       } finally {
         setLoading(false);
       }
@@ -61,9 +73,11 @@ const WatchedVideos = () => {
           setSidebarCollapsed={setSidebarCollapsed}
           activePage="watched"
         />
-        <div className={`flex-1 flex flex-col transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-        }`}>
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${
+            sidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+          }`}
+        >
           <Header />
           <main className="flex-1 p-4 md:p-6 lg:p-8 flex items-center justify-center">
             <div className="text-center">
@@ -83,33 +97,39 @@ const WatchedVideos = () => {
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1) return '1 day ago';
+    if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    if (diffDays < 30)
+      return `${Math.floor(diffDays / 7)} week${
+        Math.floor(diffDays / 7) > 1 ? "s" : ""
+      } ago`;
     return date.toLocaleDateString();
   };
 
   // Filtered videos based on search and filters
-  const filteredVideos = videoData.filter(video => {
-    const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         video.course.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCourse = courseFilter === 'All Courses' || video.course === courseFilter;
-    const matchesStatus = statusFilter === 'All Status' ||
-                         (statusFilter === 'Completed' && video.status === 'completed') ||
-                         (statusFilter === 'In Progress' && video.status === 'in-progress');
+  const filteredVideos = videoData.filter((video) => {
+    const matchesSearch =
+      video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      video.course.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCourse =
+      courseFilter === "All Courses" || video.course === courseFilter;
+    const matchesStatus =
+      statusFilter === "All Status" ||
+      (statusFilter === "Completed" && video.status === "completed") ||
+      (statusFilter === "In Progress" && video.status === "in-progress");
     return matchesSearch && matchesCourse && matchesStatus;
   });
 
   // Sort videos
   const sortedVideos = [...filteredVideos].sort((a, b) => {
     switch (sortBy) {
-      case 'Most Recent':
+      case "Most Recent":
         return new Date(b.lastWatched) - new Date(a.lastWatched);
-      case 'Oldest First':
+      case "Oldest First":
         return new Date(a.lastWatched) - new Date(b.lastWatched);
-      case 'Title A-Z':
+      case "Title A-Z":
         return a.title.localeCompare(b.title);
-      case 'Title Z-A':
+      case "Title Z-A":
         return b.title.localeCompare(a.title);
       default:
         return 0;
@@ -122,8 +142,12 @@ const WatchedVideos = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-slate-500 text-sm font-normal mb-1">Total Hours</p>
-            <p className="text-slate-900 text-2xl font-bold">{metrics.totalHours}h</p>
+            <p className="text-slate-500 text-sm font-normal mb-1">
+              Total Hours
+            </p>
+            <p className="text-slate-900 text-2xl font-bold">
+              {metrics.totalHours}h
+            </p>
           </div>
           <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center">
             <Clock className="w-4 h-4 text-blue-600" />
@@ -135,8 +159,12 @@ const WatchedVideos = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-slate-500 text-sm font-normal mb-1">Videos Completed</p>
-            <p className="text-slate-900 text-2xl font-bold">{metrics.videosCompleted}</p>
+            <p className="text-slate-500 text-sm font-normal mb-1">
+              Videos Completed
+            </p>
+            <p className="text-slate-900 text-2xl font-bold">
+              {metrics.videosCompleted}
+            </p>
           </div>
           <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center">
             <CheckCircle className="w-4 h-4 text-green-600" />
@@ -148,8 +176,12 @@ const WatchedVideos = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-slate-500 text-sm font-normal mb-1">Avg Session</p>
-            <p className="text-slate-900 text-2xl font-bold">{metrics.avgSession}</p>
+            <p className="text-slate-500 text-sm font-normal mb-1">
+              Avg Session
+            </p>
+            <p className="text-slate-900 text-2xl font-bold">
+              {metrics.avgSession}
+            </p>
           </div>
           <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center">
             <TrendingUp className="w-4 h-4 text-indigo-600" />
@@ -161,8 +193,12 @@ const WatchedVideos = () => {
       <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-slate-500 text-sm font-normal mb-1">Learning Streak</p>
-            <p className="text-slate-900 text-2xl font-bold">{metrics.learningStreak}</p>
+            <p className="text-slate-500 text-sm font-normal mb-1">
+              Learning Streak
+            </p>
+            <p className="text-slate-900 text-2xl font-bold">
+              {metrics.learningStreak}
+            </p>
           </div>
           <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center">
             <Flame className="w-4 h-4 text-orange-600" />
@@ -195,8 +231,10 @@ const WatchedVideos = () => {
             onChange={(e) => setCourseFilter(e.target.value)}
           >
             <option>All Courses</option>
-            {courses.map(course => (
-              <option key={course.id} value={course.title}>{course.title}</option>
+            {courses.map((course) => (
+              <option key={course.id} value={course.title}>
+                {course.title}
+              </option>
             ))}
           </select>
           <select
@@ -227,8 +265,8 @@ const WatchedVideos = () => {
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Video Thumbnail */}
       <div className="relative">
-        <img 
-          src={video.thumbnail} 
+        <img
+          src={video.thumbnail}
           alt={video.title}
           className="w-full h-48 object-cover"
         />
@@ -239,42 +277,57 @@ const WatchedVideos = () => {
         <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-300">
           <div
             className={`h-full ${
-              video.status === 'completed' ? 'bg-green-500' :
-              video.status === 'in-progress' ? 'bg-orange-500' :
-              'bg-gray-400'
+              video.status === "completed"
+                ? "bg-green-500"
+                : video.status === "in-progress"
+                ? "bg-orange-500"
+                : "bg-gray-400"
             }`}
             style={{ width: `${video.progress}%` }}
           ></div>
         </div>
       </div>
-      
+
       {/* Video Info */}
       <div className="p-4">
-        <h3 className="text-slate-900 text-base font-semibold mb-1 line-clamp-1">{video.title}</h3>
+        <h3 className="text-slate-900 text-base font-semibold mb-1 line-clamp-1">
+          {video.title}
+        </h3>
         <p className="text-slate-500 text-sm mb-3">{video.course}</p>
-        
+
         <div className="flex justify-between items-center text-xs text-slate-500 mb-4">
-          <span className={video.status === 'completed' ? 'text-green-600 font-medium' : ''}>
-            {video.status === 'completed' ? 'Completed' : `${video.progress}% Complete`}
+          <span
+            className={
+              video.status === "completed" ? "text-green-600 font-medium" : ""
+            }
+          >
+            {video.status === "completed"
+              ? "Completed"
+              : `${video.progress}% Complete`}
           </span>
           <span>{formatLastWatched(video.lastWatched)}</span>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="flex gap-2">
           <button
             className={`flex-1 h-10 rounded-lg text-sm font-medium ${
-              video.status === 'completed'
-                ? 'bg-gray-100 text-slate-900'
-                : 'bg-orange-500 text-white'
+              video.status === "completed"
+                ? "bg-gray-100 text-slate-900"
+                : "bg-orange-500 text-white"
             }`}
-            onClick={() => console.log(video.status === 'completed' ? 'Rewatching' : 'Resuming', video.title)}
+            onClick={() =>
+              console.log(
+                video.status === "completed" ? "Rewatching" : "Resuming",
+                video.title
+              )
+            }
           >
-            {video.status === 'completed' ? 'Rewatch' : 'Resume'}
+            {video.status === "completed" ? "Rewatch" : "Resume"}
           </button>
           <button
             className="w-7 h-10 flex items-center justify-center text-slate-500"
-            onClick={() => console.log('More options for', video.title)}
+            onClick={() => console.log("More options for", video.title)}
           >
             <MoreVertical className="w-4 h-4" />
           </button>
@@ -295,9 +348,11 @@ const WatchedVideos = () => {
       />
 
       {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${
-        sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-80'
-      }`}>
+      <div
+        className={`flex-1 flex flex-col transition-all duration-300 ${
+          sidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
+        }`}
+      >
         {/* Header */}
         <Header />
 
@@ -305,10 +360,16 @@ const WatchedVideos = () => {
         <main className="flex-1 p-4 md:p-6 lg:p-8">
           {/* Page Title */}
           <div className="mb-6 lg:mb-8">
-            <h1 className="text-slate-900 text-2xl md:text-3xl font-bold mb-1" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <h1
+              className="text-slate-900 text-2xl md:text-3xl font-bold mb-1"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               Watched Videos
             </h1>
-            <p className="text-slate-500 text-sm md:text-base" style={{ fontFamily: 'Poppins, sans-serif' }}>
+            <p
+              className="text-slate-500 text-sm md:text-base"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
               Track your learning progress and manage your video history
             </p>
           </div>
@@ -321,7 +382,7 @@ const WatchedVideos = () => {
 
           {/* Video Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-6">
-            {sortedVideos.map(video => (
+            {sortedVideos.map((video) => (
               <VideoCard key={video.id} video={video} />
             ))}
           </div>
