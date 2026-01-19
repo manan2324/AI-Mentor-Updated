@@ -5,7 +5,7 @@ import ThemeToggle from "../common/ThemeToggle";
 
 const AuthLayout = ({ children, title, subtitle }) => {
   return (
-    <div className="min-h-screen flex w-full bg-white dark:bg-[#0f172a]">
+    <div className="min-h-screen flex items-center w-full bg-white dark:bg-[#0f172a]">
       <div className="flex w-full h-full">
         {/* LEFT SECTION */}
         <div className="hidden lg:flex flex-col justify-center px-12 w-1/2 relative bg-white dark:bg-[#0f172a]">
@@ -37,7 +37,7 @@ const AuthLayout = ({ children, title, subtitle }) => {
         </div>
 
         {/* RIGHT SECTION */}
-        <div className="w-full lg:w-1/2 flex justify-center items-center p-4 lg:p-0 bg-white dark:bg-[#0f172a]">
+        <div className="mt-[34px] mb-[34px] w-full lg:w-1/2 flex justify-center items-center p-4 lg:p-0 bg-white dark:bg-[#0f172a]">
           <div className="bg-white dark:bg-[#0f172a] shadow-[0_10px_30px_rgba(0,0,0,0.19)] dark:shadow-[0_10px_30px_rgba(255,255,255,0.19)] border-0 py-10 px-8 rounded-3xl relative w-full max-w-[420px] dark:border dark:border-gray-800">
             {/* 🔥 UNIVERSAL THEME TOGGLE (TOP-RIGHT) */}
             <div className="absolute top-4 right-4">
