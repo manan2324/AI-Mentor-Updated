@@ -759,8 +759,7 @@ export default function Learning() {
           >
             {isAIVideoLoading && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
-                <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="text-white font-medium animate-pulse">Generating Celebrity Video...</p>
+                <div className="w-12 h-12 border-4 border-gray-600 border-t-transparent rounded-full animate-spin mb-4"></div>
                 <p className="text-gray-400 text-sm mt-2">This may take a few moments</p>
               </div>
             )}
