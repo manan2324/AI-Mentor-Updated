@@ -338,6 +338,9 @@ const WatchedVideos = () => {
 
   return (
     <div className="min-h-screen bg-canvas-alt flex">
+      {/* Header */}
+      <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}/>
+
       {/* Sidebar */}
       <Sidebar
         sidebarOpen={sidebarOpen}
@@ -353,8 +356,6 @@ const WatchedVideos = () => {
           sidebarCollapsed ? "lg:ml-20" : "lg:ml-80"
         }`}
       >
-        {/* Header */}
-        <Header />
 
         {/* Main Dashboard Content */}
         <main className="flex-1 p-4 mt-16 md:p-6 lg:p-8">
