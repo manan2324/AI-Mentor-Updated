@@ -110,8 +110,6 @@ router.post("/generate-video", async (req, res) => {
           if (fs.existsSync(aiServiceTextPath)) {
             textContent = await fs.promises.readFile(aiServiceTextPath, 'utf-8');
             console.log("✅ Text file also loaded!");
-            console.log("📝 Text content length:", textContent.length);
-            console.log("📝 Text preview:", textContent.substring(0, 100));
           } else {
             console.log("⚠️ Text file not found at:", aiServiceTextPath);
           }

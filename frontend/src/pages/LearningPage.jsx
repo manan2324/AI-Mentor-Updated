@@ -317,14 +317,10 @@ export default function Learning() {
             topic: learningData.currentLesson.title || learningData?.modules?.[0]?.lessons?.[0]?.title || "Welcome to the lesson"
           };
           const data = await getAIVideo(payload);
-          console.log("🎬 Received AI Video data:", data);
           if (data && data.videoUrl) {
             setAiVideoUrl(data.videoUrl);
             if (data.textContent) {
-              console.log("📝 Setting generated text content:", data.textContent.substring(0, 100));
               setGeneratedTextContent(data.textContent);
-            } else {
-              console.log("⚠️ No textContent in response");
             }
             v.pause();
             v.src = data.videoUrl;
@@ -778,8 +774,6 @@ export default function Learning() {
                           const displayText = generatedTextContent || 
                                             currentLesson?.content?.introduction || 
                                             "Learn the fundamentals and advanced concepts of this topic in this comprehensive lesson.";
-                          console.log("🖥️ Displaying text:", displayText.substring(0, 100));
-                          console.log("🖥️ generatedTextContent:", generatedTextContent?.substring(0, 50));
                           return displayText;
                         })()}
                       </p>
