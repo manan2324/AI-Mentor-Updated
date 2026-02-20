@@ -768,9 +768,9 @@ export default function Learning() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           {/* Video Player */}
-          <div className="xl:col-span-2 space-y-4 mt-3">
+          <div className="xl:col-span-3 space-y-4 mt-3">
             <VideoPlayer
               currentLesson={currentLesson}
               aiVideoUrl={aiVideoUrl}
@@ -802,7 +802,7 @@ export default function Learning() {
           </div>
 
           {/* Lesson Content */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="xl:col-span-2 space-y-6">
             <div className="bg-white rounded-lg p-6 shadow-sm mt-3">
               <h3 className="text-lg font-semibold text-gray-900 mb-0">
                 {currentLesson?.title || "Select a Lesson"}
@@ -816,7 +816,7 @@ export default function Learning() {
                 </h3>
                 <div
                   ref={transcriptContainerRef}
-                  className="max-h-96 overflow-y-auto space-y-2 pr-2 scroll-smooth"
+                  className="max-h-80 overflow-y-auto space-y-2 pr-2 scroll-smooth"
                 >
                   {captions.map((caption, index) => {
                     const isActive = currentTime >= caption.start && currentTime <= caption.end;
